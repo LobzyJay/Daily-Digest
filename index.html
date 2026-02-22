@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Digest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #root { width: 100%; min-height: 100vh; }
+    body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+
+
+const P={black:"#000",bg:"#080808",surface:"#0f0f0f",raised:"#161616",border:"#222",borderHi:"#333",dim:"#444",muted:"#777",text:"#bbb",bright:"#e0e0e0",white:"#fff"};
+
+// ═══ MINIMAL LINE ICONS (inline SVG) ═══
+const I=({d,s=14,c="currentColor",sw=1.5})=>(<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,display:"inline-block",verticalAlign:"middle"}}><path d={d}/></svg>);
+const Ic={
+  mail:     (p)=><I d="M3 7l9 6 9-6M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7a2 2 0 012-2h14a2 2 0 012 2" {...p}/>,
+  inbox:    (p)=><I d="M22 12h-6l-2 3H10l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" {...p}/>,
+  send:     (p)=><I d="M22 2L11 13M22 2l-7 20-4-9-9-4z" {...p}/>,
+  jobs:     (p)=><I d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" {...p}/>,
+  news:     (p)=><I d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2M10 6h8M10 10h4" {...p}/>,
+  timer:    (p)=><I d="M12 22a9 9 0 100-18 9 9 0 000 18zM12 6v6l4 2M9 1h6M12 1v3" {...p}/>,
+  cal:      (p)=><I d="M4 8h16M4 4h16a2 2 0 012 2v14a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zM8 2v4M16 2v4M9 12h2M13 12h2M9 16h2M13 16h2" {...p}/>,
+  tasks:    (p)=><I d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" {...p}/>,
+  stats:    (p)=><I d="M18 20V10M12 20V4M6 20v-6" {...p}/>,
+  social:   (p)=><I d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" {...p}/>,
+  log:      (p)=><I d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9zM13 2v7h7" {...p}/>,
+  settings: (p)=><I d="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" {...p}/>,
+  music:    (p)=><I d="M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zM21 16a3 3 0 11-6 0 3 3 0 016 0z" {...p}/>,
+  play:     (p)=><I d="M5 3l14 9-14 9z" {...p}/>,
+  pause:    (p)=><I d="M6 4h4v16H6zM14 4h4v16h-4z" {...p}/>,
+  star:     (p)=><I d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" {...p}/>,
+  starFill: (p)=><svg width={p?.s||14} height={p?.s||14} viewBox="0 0 24 24" fill={p?.c||"currentColor"} stroke={p?.c||"currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,display:"inline-block",verticalAlign:"middle"}}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>,
+  upload:   (p)=><I d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" {...p}/>,
+  x:        (p)=><I d="M18 6L6 18M6 6l12 12" {...p}/>,
+  plus:     (p)=><I d="M12 5v14M5 12h14" {...p}/>,
+  back:     (p)=><I d="M19 12H5M12 19l-7-7 7-7" {...p}/>,
+  link:     (p)=><I d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" {...p}/>,
+  design:   (p)=><I d="M12 19l7-7 3 3-7 7zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18zM2 2l7.586 7.586M11 13a2 2 0 110-4 2 2 0 010 4z" {...p}/>,
+  globe:    (p)=><I d="M12 22a10 10 0 100-20 10 10 0 000 20zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" {...p}/>,
+  zap:      (p)=><I d="M13 2L3 14h9l-1 8 10-12h-9z" {...p}/>,
+  sport:    (p)=><I d="M12 22a10 10 0 100-20 10 10 0 000 20zM2.2 10.3l5.1 1.8 3.1-4.3M12.5 2.1L9.9 8.4 4.3 14M22 12l-5.5-1L12 22M20 5.6L16.5 11l1 6.5" {...p}/>,
+  eye:      (p)=><I d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12zM12 15a3 3 0 100-6 3 3 0 000 6z" {...p}/>,
+  shield:   (p)=><I d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" {...p}/>,
+  chevDown: (p)=><I d="M6 9l6 6 6-6" {...p}/>,
+  chevRight:(p)=><I d="M9 18l6-6-6-6" {...p}/>,
+  sun:      (p)=><I d="M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" {...p}/>,
+  moon:     (p)=><I d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" {...p}/>,
+  check:    (p)=><I d="M20 6L9 17l-5-5" {...p}/>,
+  closeSm:  (p)=><I d="M18 6L6 18M6 6l12 12" s={10} {...p}/>,
+  cloud:    (p)=><I d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" {...p}/>,
+};
+
+const JOBS=[
+  {id:1,title:"Sr. Brand Designer",co:"Monad Labs",loc:"Remote",salary:"$140–180K",age:"2h",match:96,tags:["Senior"],chance:"high",hot:true},
+  {id:2,title:"Visual Designer",co:"Uniswap Labs",loc:"NYC / Remote",salary:"$130–160K",age:"5h",match:91,tags:["Mid-Senior"],chance:"high"},
+  {id:3,title:"Design Lead",co:"Phantom",loc:"San Francisco / Remote",salary:"$160–200K",age:"8h",match:89,tags:["Lead"],chance:"high"},
+  {id:4,title:"Creative Director",co:"Coinbase",loc:"SF / Hybrid",salary:"$180–220K",age:"1d",match:84,tags:["Director"],chance:"medium"},
+  {id:5,title:"Sr. Product Designer",co:"Alchemy",loc:"Remote",salary:"$150–185K",age:"1d",match:81,tags:["Senior"],chance:"medium"},
+  {id:6,title:"Motion Designer",co:"Immutable",loc:"Sydney / Remote",salary:"$120–150K",age:"1d",match:78,tags:["Mid"],chance:"high"},
+  {id:7,title:"Brand & Identity Lead",co:"Arbitrum Foundation",loc:"Remote",salary:"$155–190K",age:"2d",match:88,tags:["Lead"],chance:"high"},
+  {id:8,title:"Principal Designer",co:"Paradigm",loc:"NYC / Remote",salary:"$190–240K",age:"2d",match:76,tags:["Principal"],chance:"low"},
+  {id:9,title:"Sr. Visual Designer",co:"Stripe",loc:"Remote",salary:"$145–175K",age:"3d",match:82,tags:["Senior"],chance:"medium"},
+];
+const ALL_MAIL=[
+  {id:"m1",from:"talent@monad.xyz",name:"Monad Talent",subj:"Application Update — Sr. Brand Designer",t:"6:42 AM",ts:1708243320,u:true,cat:"jobs",prov:"google",pri:98,url:"https://mail.google.com/mail/u/0/#inbox/m1"},
+  {id:"m2",from:"yusuf@021labs.com",name:"Yusuf Ahmed",subj:"RE: Q1 Brand Refresh — Final Deliverables",t:"7:01 AM",ts:1708244460,u:true,cat:"work",prov:"google",pri:95,url:"https://mail.google.com/mail/u/0/#inbox/m2"},
+  {id:"m3",from:"hire@phantom.app",name:"Phantom Hiring",subj:"Interview Scheduled — Design Lead (Feb 22)",t:"Yest.",ts:1708160000,u:true,cat:"jobs",prov:"google",pri:97,url:"https://mail.google.com/mail/u/0/#inbox/m3"},
+  {id:"m4",from:"ops@onchainfoundation.org",name:"Onchain Ops",subj:"Membership Campaign V2 — Assets Due Friday",t:"6:55 AM",ts:1708243700,u:true,cat:"work",prov:"outlook",pri:90,url:"https://outlook.live.com/mail/0/inbox/id/m4"},
+  {id:"m5",from:"billing@adobe.com",name:"Adobe Billing",subj:"Creative Cloud — Invoice #CC-2026-0218",t:"Yest.",ts:1708156000,u:true,cat:"bills",prov:"icloud",pri:40,url:"https://www.icloud.com/mail/#inbox/m5"},
+  {id:"m6",from:"noreply@greenhouse.io",name:"Greenhouse",subj:"Your application to Alchemy was received",t:"Yest.",ts:1708152000,u:false,cat:"jobs",prov:"google",pri:55,url:"https://mail.google.com/mail/u/0/#inbox/m6"},
+  {id:"m7",from:"digest@producthunt.com",name:"Product Hunt",subj:"Today's Top Products — Feb 18",t:"5:00 AM",ts:1708237200,u:false,cat:"promo",prov:"google",pri:15,url:"https://mail.google.com/mail/u/0/#inbox/m7"},
+  {id:"m8",from:"payments@wise.com",name:"Wise",subj:"Payment received — $2,400.00 from 021 Labs",t:"2d ago",ts:1708070000,u:false,cat:"bills",prov:"outlook",pri:60,url:"https://outlook.live.com/mail/0/inbox/id/m8"},
+  {id:"m9",from:"client@defiprotocol.io",name:"DeFi Protocol",subj:"Logo Concepts — Round 2 Feedback (urgent)",t:"Yest.",ts:1708158000,u:true,cat:"work",prov:"google",pri:92,url:"https://mail.google.com/mail/u/0/#inbox/m9"},
+  {id:"m10",from:"uche@layoutstudio.co",name:"Uche — Studio Dir.",subj:"UK Entity Setup — Docs from solicitor",t:"6:30 AM",ts:1708242600,u:true,cat:"work",prov:"outlook",pri:88,url:"https://outlook.live.com/mail/0/inbox/id/m10"},
+  {id:"m11",from:"security@coinbase.com",name:"Coinbase Careers",subj:"Creative Director — Interview Invite",t:"Yest.",ts:1708155000,u:true,cat:"jobs",prov:"icloud",pri:85,url:"https://www.icloud.com/mail/#inbox/m11"},
+  {id:"m12",from:"team@contra.com",name:"Contra",subj:"New brief matches your profile — NFT Marketplace",t:"5h ago",ts:1708225200,u:false,cat:"work",prov:"google",pri:65,url:"https://mail.google.com/mail/u/0/#inbox/m12"},
+];
+
+// ═══ SMART SORT — weighted priority algorithm ═══
+function smartSort(mails){
+  const now=Date.now()/1000;
+  return[...mails].sort((a,b)=>{
+    // Weight: priority(50%) + recency(30%) + unread(20%)
+    const recA=Math.max(0,1-(now-a.ts)/172800); // decay over 48h
+    const recB=Math.max(0,1-(now-b.ts)/172800);
+    const sA=a.pri*0.5+recA*100*0.3+(a.u?20:0);
+    const sB=b.pri*0.5+recB*100*0.3+(b.u?20:0);
+    return sB-sA;
+  });
+}
+const NEWS={
+  design:[
+    {title:"Figma AI Auto-Layout ships natively — context-aware spacing",src:"Figma Blog · The Verge",t:"2h",hot:true},
+    {title:"Krea 2.0 drops — real-time motion generation from stills",src:"Product Hunt · @kaborle",t:"4h",hot:true},
+    {title:"Runway Gen-4 beta open to all Creative Cloud users",src:"Runway · TechCrunch",t:"6h"},
+    {title:"Galileo AI now exports directly to Figma with variables",src:"TechCrunch · Designbetter.co",t:"8h"},
+    {title:"Adobe Firefly Video — first look at AI video compositing",src:"Adobe Blog · Creative Bloq",t:"1d"},
+    {title:"Midjourney v7 — coherent text rendering in images",src:"@midjourney · Ars Technica",t:"1d",hot:true},
+    {title:"Framer launches AI-powered responsive breakpoints",src:"Framer · Product Hunt",t:"1d"},
+  ],
+  deeptech:[
+    {title:"CERN detects anomalous particle decay hinting at 5th force",src:"Nature · CERN Courier · Phys.org",t:"3h",hot:true},
+    {title:"NASA confirms biosignature candidates in Enceladus plumes",src:"NASA JPL · New Scientist · ArXiv",t:"5h",hot:true},
+    {title:"DeepMind AlphaFold 4 predicts full protein interactions in vivo",src:"DeepMind · Nature · MIT Tech Review",t:"6h"},
+    {title:"Quantum error correction breakthrough — 99.8% fidelity at scale",src:"IBM Research · Science · IEEE Spectrum",t:"8h",hot:true},
+    {title:"Neuralink N2 chip — first bidirectional brain-computer demo",src:"Neuralink · Wired · The Guardian",t:"1d"},
+    {title:"James Webb captures high-res Proxima b atmospheric spectrum",src:"ESA · Space.com · ArXiv",t:"1d"},
+    {title:"OpenAI o3 reasoning model passes PhD-level physics problems",src:"OpenAI · Ars Technica · VentureBeat",t:"2d"},
+  ],
+  sport:[
+    {title:"Champions League QF draw — Madrid vs City rematch",src:"UEFA · ESPN · Sky Sports",t:"1h",hot:true},
+    {title:"NBA trade deadline: 3 blockbuster deals reshape playoff picture",src:"ESPN · The Athletic · Bleacher Report",t:"3h",hot:true},
+    {title:"Premier League matchweek 26 — Arsenal top on goal diff",src:"Sky Sports · BBC Sport · The Guardian",t:"4h"},
+    {title:"F1 2026 pre-season Bahrain — Mercedes 1-2 in final test",src:"Autosport · F1.com · Motorsport.com",t:"6h"},
+    {title:"Warzone Ranked Season 2 update — new Resurgence ranked mode",src:"Call of Duty · CharlieIntel · Dexerto",t:"8h"},
+    {title:"UFC 310 full card — Makhachev vs Oliveira 2 headlines",src:"MMA Fighting · ESPN MMA · Sherdog",t:"1d"},
+  ],
+  osint:[
+    {title:"Epstein associate flight logs — 300+ pages FOIA release",src:"Court Listener · PACER · MuckRock · NYT",t:"2h",hot:true},
+    {title:"CIA MKUltra batch 47 declassified — 1,200 new documents",src:"Nat. Archives · The Intercept · FOIA.gov",t:"5h",hot:true},
+    {title:"Baltic submarine cable cuts — third incident, pattern analysis",src:"Bellingcat · RUSI · Reuters · Naval News",t:"6h"},
+    {title:"Pegasus spyware detected on 3 journalists in EU member states",src:"Citizen Lab · Amnesty Tech · The Guardian",t:"8h",hot:true},
+    {title:"Panama Papers DB updated — 2024 offshore leaks added",src:"ICIJ · Süddeutsche Zeitung · OCCRP",t:"1d"},
+    {title:"Europol Op SpecTor — 288 dark web arrests, $53M seized",src:"Europol · FBI · BBC · Wired",t:"1d",hot:true},
+    {title:"Chinese surveillance balloon metadata — OSINT reconstruction",src:"Bellingcat · Janes · Flight Radar · NBC",t:"2d"},
+  ],
+};
+const SOCIAL=[{plat:"X",author:"@founderX",txt:"Looking for a brand designer who gets Web3. DM.",t:"1h",q:"high"},{plat:"LI",author:"Sarah Chen",txt:"Hiring Visual Designer at DeFi startup. Remote.",t:"3h",q:"high"},{plat:"CO",author:"New Brief",txt:"Brand Identity for NFT marketplace. $8K–12K.",t:"4h",q:"high"},{plat:"X",author:"@web3recruiter",txt:"Senior design roles at top L1s.",t:"6h",q:"partial"},{plat:"DC",author:"FoF #hiring",txt:"Freelance motion designers for crypto sprint.",t:"8h",q:"partial"}];
+const INIT_TODOS=[{id:1,text:"Update portfolio with Onchain campaign",done:false,pri:"urgent"},{id:2,text:"Reply to Monad recruiter",done:false,pri:"urgent"},{id:3,text:"Send Layout Studio invoice — 021 Labs",done:true,pri:"important"},{id:4,text:"Post Strandsby.oma case study",done:false,pri:"normal"},{id:5,text:"Prep Phantom interview materials",done:false,pri:"important"}];
+const LOGS=["SCAN Greenhouse → 3 new","SCAN Lever → 1 new","MAIL Gmail sync — 47","LEAD X → 2 matches","SCAN Wellfound → 2","LEAD Contra → 1 brief","SYS 64/73 healthy"];
+const EMAILS=["adewale@gmail.com","wale@layoutstudio.co","wale@021labs.com"];
+const TEMPLATES=[{name:"Job Application",body:"Hi [Name],\n\nI came across the [Role] position at [Company] and wanted to reach out. I'm a multidisciplinary designer with 6+ years across brand identity, UI/UX, and motion — currently Principal Designer at 021 Labs and Visual Designer at Onchain Foundation.\n\nI'd love to chat about how I can contribute.\n\nBest,\nAdewale"},{name:"Freelance Pitch",body:"Hi [Name],\n\nI run Layout Studio — a design agency specializing in brand identity, motion, and Web3. We've generated $150K+ revenue with 146M+ user reach.\n\nI'd love to explore working together on [Project].\n\nAdewale\nLayout Studio"},{name:"Networking",body:"Hi [Name],\n\nI've been following [Company]'s work — really admire what you're building. I'm a designer across Web3, brand, and motion. Would love to connect.\n\nBest,\nAdewale"},{name:"Custom",body:""}];
+
+const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const dateLabel=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}).toUpperCase();
+
+const Mo=({children,s=10,c=P.dim,w=600,ls="0.08em",st={}})=>(<span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:s,color:c,fontWeight:w,letterSpacing:ls,lineHeight:1.3,...st}}>{children}</span>);
+const Tag=({children,inv,style={}})=>(<span className={`tag ${inv?"inv":""}`} style={style}>{children}</span>);
+const Dot=({color=P.white,size=6,pulse})=>(<span className={pulse?"dot pulse":"dot"} style={{width:size,height:size,background:color}}/>);
+const Card=({area,children,cls=""})=>(<div className={`card ${cls}`} style={{gridArea:area}}>{cls.includes("ni")?children:<div className="ci">{children}</div>}</div>);
+const Head=({left,right})=>(<div className="ch"><div style={{display:"flex",alignItems:"center",gap:6}}>{left}</div>{right&&<div style={{display:"flex",alignItems:"center",gap:6}}>{right}</div>}</div>);
+
+// ═══ HERO BG DITHER ═══
+function HeroDither({light}){
+  const cv=useRef(null);const af=useRef(null);const t=useRef(0);const mode=useRef(light);
+  mode.current=light;
+  const draw=useCallback(()=>{const c=cv.current;if(!c)return;const x=c.getContext("2d"),W=c.width,H=c.height;const img=x.createImageData(W,H);const d=img.data;t.current+=.008;const T=t.current;const B=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];const isLight=mode.current;for(let y=0;y<H;y++)for(let xx=0;xx<W;xx++){const nx=xx/W*3,ny=y/H*3;const v=Math.sin(nx*2.5+T*1.1)*Math.cos(ny*2.5-T*.7)+Math.sin((nx+ny)*1.8+T*.5)*.5+Math.sin(Math.sqrt(nx*nx+ny*ny)*3-T*1.3)*.3+Math.sin(nx*1.2-T*.4)*Math.cos(ny*1.5+T*.6)*.4;const n=(v+2.2)/4.4;const on=n>B[y%4][xx%4]/16;const i=(y*W+xx)*4;if(isLight){const lv=on?Math.floor(180+n*55):240;d[i]=lv;d[i+1]=lv;d[i+2]=lv;d[i+3]=on?80:0;}else{d[i]=d[i+1]=d[i+2]=on?255:0;d[i+3]=on?42:0;}}x.putImageData(img,0,0);af.current=requestAnimationFrame(draw);},[]);
+  useEffect(()=>{const c=cv.current;if(!c)return;const rs=()=>{const r=c.parentElement.getBoundingClientRect();c.width=Math.floor(r.width/3);c.height=Math.floor(r.height/3);};rs();window.addEventListener("resize",rs);af.current=requestAnimationFrame(draw);return()=>{window.removeEventListener("resize",rs);cancelAnimationFrame(af.current);};},[draw]);
+  return <canvas ref={cv} className="hero-bg"/>;
+}
+
+// ═══ HERO TRAIL — pixelated pierce path ═══
+function HeroTrail({containerRef}){
+  const cv=useRef(null);const ps=useRef([]);const ms=useRef({x:-999,y:-999});const pms=useRef({x:-999,y:-999});const af=useRef(null);const ls=useRef(0);
+  useEffect(()=>{const c=cv.current;const box=containerRef.current;if(!c||!box)return;const ctx=c.getContext("2d");
+    const S=5;
+    const rs=()=>{const r=box.getBoundingClientRect();c.width=Math.floor(r.width/S);c.height=Math.floor(r.height/S);};rs();window.addEventListener("resize",rs);
+    const onM=e=>{const r=box.getBoundingClientRect();const nx=(e.clientX-r.left)/S,ny=(e.clientY-r.top)/S;pms.current={x:ms.current.x,y:ms.current.y};ms.current={x:nx,y:ny};const now=Date.now();if(now-ls.current>10){ls.current=now;const dx=ms.current.x-pms.current.x,dy=ms.current.y-pms.current.y;const spd=Math.sqrt(dx*dx+dy*dy);for(let i=0;i<3;i++){const spread=2+Math.random()*2;ps.current.push({x:ms.current.x+(Math.random()-.5)*spread,y:ms.current.y+(Math.random()-.5)*spread,vx:dx*-.03+(Math.random()-.5)*.15,vy:dy*-.03+(Math.random()-.5)*.15,life:1,decay:.012+Math.random()*.008,size:Math.random()*3+2,bright:Math.min(spd*0.15+0.3,1)});}}};
+    const onL=()=>{ms.current={x:-999,y:-999};pms.current={x:-999,y:-999};};box.addEventListener("mousemove",onM);box.addEventListener("mouseleave",onL);
+    const B=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+    const draw=()=>{
+      ctx.fillStyle="rgba(0,0,0,0.07)";ctx.fillRect(0,0,c.width,c.height);
+      const arr=ps.current;
+      for(let i=arr.length-1;i>=0;i--){
+        const p=arr[i];p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;
+        if(p.life<=0){arr.splice(i,1);continue;}
+        const rad=Math.max(1,Math.floor(p.size*p.life));
+        const cx=Math.floor(p.x),cy=Math.floor(p.y);
+        for(let dy=-rad;dy<=rad;dy++)for(let dx=-rad;dx<=rad;dx++){
+          const dist=Math.sqrt(dx*dx+dy*dy)/rad;if(dist>1)continue;
+          const intensity=(1-dist)*p.life*p.bright;
+          const px=cx+dx,py=cy+dy;
+          if(px<0||py<0||px>=c.width||py>=c.height)continue;
+          const thr=B[((py%4)+4)%4][((px%4)+4)%4]/16;
+          if(intensity>thr){
+            ctx.fillStyle=`rgba(255,255,255,${Math.min(intensity*p.life*0.4,0.25)})`;
+            ctx.fillRect(px,py,1,1);
+          }
+        }
+      }
+      if(arr.length>500)arr.splice(0,arr.length-500);
+      af.current=requestAnimationFrame(draw);
+    };
+    af.current=requestAnimationFrame(draw);
+    return()=>{box.removeEventListener("mousemove",onM);box.removeEventListener("mouseleave",onL);window.removeEventListener("resize",rs);cancelAnimationFrame(af.current);};
+  },[containerRef]);
+  return <canvas ref={cv} className="hero-trail"/>;
+}
+
+// ═══ PROFILE PHOTO — visible in hero ═══
+function ProfilePhoto(){
+  const [img,setImg]=useState(null);const [dith,setDith]=useState(null);const [mode,setMode]=useState("dither");const fr=useRef(null);
+  const upload=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{setImg(ev.target.result);ditherImg(ev.target.result);};r.readAsDataURL(f);};
+  const ditherImg=src=>{const im=new Image();im.onload=()=>{const cv=document.createElement("canvas");const s=96;cv.width=s;cv.height=s;const ctx=cv.getContext("2d");ctx.drawImage(im,0,0,s,s);const id=ctx.getImageData(0,0,s,s);const d=id.data;const B=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];for(let y=0;y<s;y++)for(let x=0;x<s;x++){const i=(y*s+x)*4;const g=(d[i]*.3+d[i+1]*.59+d[i+2]*.11)/255;const on=g>B[y%4][x%4]/16?255:0;d[i]=d[i+1]=d[i+2]=on;}ctx.putImageData(id,0,0);setDith(cv.toDataURL());};im.src=src;};
+  return(<div className="pfp" onClick={img?()=>setMode(m=>m==="dither"?"normal":"dither"):()=>fr.current?.click()} title={img?"Click to toggle dither":"Click to upload photo"}>
+    <input ref={fr} type="file" accept="image/*" onChange={upload} style={{display:"none"}}/>
+    {img?<img src={mode==="dither"?dith:img} alt="Profile" className={`pfp-img ${mode==="dither"?"dith":""}`}/>
+    :<div className="pfp-empty">{Ic.upload({s:18,c:"var(--tx-md)"})}<Mo s={8} c="var(--tx-lo)">PHOTO</Mo></div>}
+  </div>);
+}
+
+// ═══ MUSIC WIDGET — actual widget style ═══
+function MusicWidget(){
+  const [svc,setSvc]=useState(null);const [play,setPlay]=useState(true);
+  if(!svc)return(
+    <div className="mw mw-connect">
+      <div className="mw-icon">{Ic.music({s:18,c:"#aaa"})}</div>
+      <div style={{flex:1}}>
+        <Mo s={9} c="var(--tx-hi)" w={700} ls="0.08em">Connect Music</Mo>
+        <Mo s={8} c="var(--tx-lo)" st={{display:"block",marginTop:2}}>OAuth · read-only</Mo>
+      </div>
+      <div className="mw-btns">
+        <button onClick={()=>setSvc("spotify")} className="mw-svc">Spotify</button>
+        <button onClick={()=>setSvc("apple")} className="mw-svc">Apple</button>
+      </div>
+    </div>);
+  return(
+    <div className="mw mw-playing">
+      <div className="mw-album">{["░▓█▓░","▓███▓","█████","▓███▓","░▓█▓░"].map((l,i)=><div key={i}>{l}</div>)}</div>
+      <div className="mw-track">
+        <div className="mw-track-top">
+          <div><div className="mw-song">Untitled (Black Is)</div><div className="mw-artist">Sault</div></div>
+          <button onClick={()=>setSvc(null)} className="mw-x">{Ic.x({s:12,c:"var(--tx-lo)"})}</button>
+        </div>
+        <div className="mw-bar-wrap"><div className="mw-bar"><div className="mw-fill" style={{width:"67%"}}/></div><div className="mw-times"><Mo s={7} c="var(--tx-lo)">2:41</Mo><Mo s={7} c="var(--tx-lo)">4:03</Mo></div></div>
+        <div className="mw-bottom">
+          <div className="mw-svc-badge"><Mo s={7} c="var(--tx-lo)" w={700}>{svc==="spotify"?"SPOTIFY":"APPLE"}</Mo></div>
+          <div className="mw-playback">
+            <button onClick={()=>setPlay(!play)} className="mw-pp">{play?Ic.pause({s:14,c:"var(--tx-hi)"}):Ic.play({s:14,c:"var(--tx-hi)"})}</button>
+            <div className="eq">{Array.from({length:8}).map((_,i)=>(<div key={i} className={`eq-bar ${play?"on":""}`} style={{animationDelay:`${i*.09}s`}}/>))}</div>
+          </div>
+        </div>
+      </div>
+    </div>);
+}
+
+// ═══ HERO ═══
+function Hero({onSettings,light,setLight,config}){
+  const ref=useRef(null);const [pulse,setPulse]=useState(true);
+  useEffect(()=>{const i=setInterval(()=>setPulse(p=>!p),1400);return()=>clearInterval(i);},[]);
+  return(<section className="hero" ref={ref}><HeroDither light={light}/><div className="hero-dim"/><HeroTrail containerRef={ref}/>
+    <div className="hero-c">
+      <div className="hero-top">
+        <div className="hero-top-l"><Dot color={P.white} size={7} pulse={pulse}/><Mo s={9} c="var(--tx-md)">64/73 SOURCES</Mo></div>
+        <div className="hero-top-r"><Mo s={9} c="var(--tx-md)">{new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:false})} {config?.tz||"WAT"}</Mo>
+          <button className="lt-btn" onClick={()=>setLight(!light)}>{light?Ic.sun({s:11,c:"currentColor"}):Ic.moon({s:11,c:"currentColor"})} <Mo s={8} c="var(--tx-md)" w={700}>{light?"LIGHT":"DARK"}</Mo></button>
+          <button onClick={onSettings} className="hub-btn">{Ic.settings({s:10,c:"currentColor"})} HUB</button>
+        </div>
+      </div>
+      <div className="hero-mid">
+        <div className="hero-l"><h1 className="hero-t">{config?.heroLine1||"DAILY"}<br/>{config?.heroLine2||"DIGEST"}</h1><div className="hero-d">{dateLabel}</div><div className="hero-name">{config?.name||"ADEWALE ALOBA"}</div></div>
+        <div className="hero-r"><ProfilePhoto/><MusicWidget/></div>
+      </div>
+    </div>
+  </section>);
+}
+
+// ═══ MAIL — providers, smart sort, clickable ═══
+function MailCard(){
+  const [cat,setCat]=useState(null);const [prov,setProv]=useState("all");
+  const cats=[{k:"jobs",l:"JOBS"},{k:"work",l:"WORK"},{k:"promo",l:"PROMO"},{k:"bills",l:"BILLS"}];
+  const provs=[{k:"all",l:"ALL"},{k:"google",l:"GMAIL"},{k:"outlook",l:"OUTLOOK"},{k:"icloud",l:"iCLOUD"}];
+  const filtered=prov==="all"?ALL_MAIL:ALL_MAIL.filter(m=>m.prov===prov);
+  const byCat=k=>filtered.filter(m=>m.cat===k);
+  const sorted=smartSort(filtered);
+  const unread=filtered.filter(m=>m.u).length;
+  const catLabel={jobs:"JOB",work:"WORK",promo:"PROMO",bills:"BILL"};
+  const provIcon={google:"G",outlook:"O",icloud:"☁"};
+  const openMail=m=>{if(m.url)window.open(m.url,"_blank");};
+  return(<Card area="mail"><div className="ch" style={{gap:4}}>
+    <div style={{display:"flex",alignItems:"center",gap:6}}>{Ic.mail({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">MAIL</Mo></div>
+    <div style={{display:"flex",gap:3,marginLeft:"auto",alignItems:"center"}}>
+      {provs.map(p=>(<button key={p.k} onClick={()=>setProv(p.k)} className={`ntab ${prov===p.k?"on":""}`} style={{padding:"3px 8px",fontSize:7}}>{p.l}</button>))}
+      <Tag inv style={{marginLeft:4}}>{unread} UNREAD</Tag>
+    </div>
+  </div>
+    {!cat?(<>
+      <div className="mg2">{cats.map(c=>{const n=byCat(c.k).length;const un=byCat(c.k).filter(m=>m.u).length;return(<button key={c.k} onClick={()=>setCat(c.k)} className="mt2"><Mo s={8} c="var(--tx-lo)" ls="0.1em">{c.l}</Mo><div style={{display:"flex",alignItems:"baseline",gap:3}}><span className="mn2">{n}</span>{un>0&&<Mo s={8} c="var(--tx-hi)" w={700}>{un} NEW</Mo>}</div></button>);})}</div>
+      <div className="mail-feed">
+        <Mo s={8} c="var(--tx-lo)" ls="0.1em" w={700} st={{padding:"0 0 4px",display:"flex",justifyContent:"space-between"}}><span>PRIORITY FEED</span><span style={{fontWeight:400,letterSpacing:"0.04em"}}>SMART SORTED</span></Mo>
+        {sorted.filter(m=>m.u).slice(0,5).map(m=>(
+          <div key={m.id} className="mail-feed-item mfi-click" onClick={()=>openMail(m)}>
+            <div className="mail-feed-top">
+              <div style={{display:"flex",alignItems:"center",gap:5,flex:1,minWidth:0}}>
+                <span className="mail-unread-dot"/>
+                <span className="mail-prov-icon">{provIcon[m.prov]}</span>
+                <span className="mail-from">{m.name||m.from.split("@")[0]}</span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                <Tag style={{fontSize:7,padding:"1px 5px"}}>{catLabel[m.cat]}</Tag>
+                <Mo s={8} c="var(--tx-lo)">{m.t}</Mo>
+              </div>
+            </div>
+            <div className="mail-feed-subj">{m.subj}</div>
+          </div>
+        ))}
+      </div>
+    </>):(<div className="cs">
+      <button onClick={()=>setCat(null)} className="back"><>{Ic.back({s:12,c:"var(--tx-hi)"})}<Mo s={10} c="var(--tx-hi)">BACK</Mo></></button>
+      {smartSort(byCat(cat)).map(m=>(
+        <div key={m.id} className="lr mfi-click" onClick={()=>openMail(m)} style={{flexDirection:"column",gap:3,alignItems:"stretch"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,flex:1,minWidth:0}}>
+              {m.u&&<span className="mail-unread-dot"/>}
+              <span className="mail-prov-icon">{provIcon[m.prov]}</span>
+              <Mo s={10} c="var(--tx-md)">{m.name||m.from}</Mo>
+            </div>
+            <Mo s={9} c="var(--tx-lo)">{m.t}</Mo>
+          </div>
+          <span style={{fontSize:12,color:m.u?"var(--tx-hi)":"var(--tx-md)",fontWeight:m.u?600:400,paddingLeft:18}}>{m.subj}</span>
+        </div>
+      ))}
+    </div>)}
+  </Card>);
+}
+
+// ═══ NEWS ═══
+function NewsCard(){
+  const [tab,setTab]=useState("design");
+  const tabs=[{k:"design",l:"DESIGN AI",ic:"design"},{k:"deeptech",l:"DEEP TECH",ic:"zap"},{k:"sport",l:"SPORT",ic:"sport"},{k:"osint",l:"OSINT",ic:"shield"}];
+  const items=NEWS[tab]||[];
+  const cur=tabs.find(t=>t.k===tab);
+  return(<Card area="news">
+    <div className="ch" style={{gap:6}}>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>{Ic.news({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">NEWS RADAR</Mo></div>
+      <div className="news-tabs">{tabs.map(t=>(<button key={t.k} onClick={()=>setTab(t.k)} className={`ntab ${tab===t.k?"on":""}`}>{t.l}</button>))}</div>
+    </div>
+    <div className="cs">{items.map((t,i)=>(<div key={tab+i} className="lr news-item" style={{gap:10,alignItems:"flex-start"}}>
+      <div className="ri">{Ic[cur.ic]({s:13,c:"var(--tx-hi)"})}</div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:"var(--tx-hi)",lineHeight:1.35}}>{t.title}</span>{t.hot&&<Tag inv>HOT</Tag>}</div>
+        <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap"}}><Mo s={9} c="var(--tx-md)">{t.src}</Mo><Mo s={8} c="var(--tx-lo)">{t.t}</Mo></div>
+      </div>
+    </div>))}</div>
+    <div className="cf" style={{justifyContent:"flex-end"}}><Mo s={9} c="var(--tx-hi)" st={{cursor:"pointer"}}>FULL ROUNDUP →</Mo></div>
+  </Card>);
+}
+
+// ═══ COLD EMAIL ═══
+function ColdEmailCard(){
+  const [ti,setTi]=useState(0);const [body,setBody]=useState(TEMPLATES[0].body);const [to,setTo]=useState("");const [from,setFrom]=useState(EMAILS[0]);const [subj,setSubj]=useState("");const [sent,setSent]=useState([]);const [sending,setSending]=useState(false);
+  const [custom,setCustom]=useState([]);const [saving,setSaving]=useState(false);const [saveName,setSaveName]=useState("");
+  const allTpls=[...TEMPLATES,...custom];
+  const pick=i=>{setTi(i);setBody(allTpls[i].body);setSubj(allTpls[i].subj||"");};
+  const saveCustom=()=>{if(!saveName.trim()||!body.trim())return;setCustom(p=>[...p,{name:saveName.trim(),body,subj}]);setSaving(false);setSaveName("");setTi(allTpls.length);};
+  const delCustom=i=>{const ci=i-TEMPLATES.length;setCustom(p=>p.filter((_,j)=>j!==ci));if(ti===i)pick(0);else if(ti>i)setTi(ti-1);};
+  const send=()=>{if(!to.trim()||!body.trim())return;setSending(true);setTimeout(()=>{setSent(p=>{const n=[...p,{to:to.trim(),subj:subj||"(No subject)",t:new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}];return n;});setTo("");setSubj("");setSending(false);},600);};
+  return(<Card area="email"><Head left={<>{Ic.send({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">COLD EMAIL</Mo></>} right={<Tag inv={sent.length>0}>{sent.length} SENT</Tag>}/>
+    <div className="cs" style={{padding:12,display:"flex",flexDirection:"column",gap:8}}>
+      <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Mo s={9} c="var(--tx-lo)" ls="0.1em">TEMPLATE</Mo>{!saving&&<button onClick={()=>setSaving(true)} className="save-tpl-btn"><Mo s={8} c="var(--tx-hi)" w={700}>+ SAVE AS TEMPLATE</Mo></button>}</div>
+        {saving&&<div className="save-tpl-row"><input value={saveName} onChange={e=>setSaveName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveCustom()} placeholder="Template name..." className="inp" style={{flex:1,padding:"5px 10px",fontSize:10}}/><button onClick={saveCustom} className="ab2" style={{padding:"5px 10px",fontSize:8}}>SAVE</button><button onClick={()=>{setSaving(false);setSaveName("");}} className="ab2" style={{padding:"5px 10px",fontSize:8}}>{Ic.x({s:8,c:"currentColor"})}</button></div>}
+        <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap"}}>{allTpls.map((t,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:0}}><button onClick={()=>pick(i)} className={`chip ${ti===i?"on":""}`}>{t.name}</button>{i>=TEMPLATES.length&&<button onClick={()=>delCustom(i)} className="tpl-del">{Ic.x({s:9,c:"currentColor"})}</button>}</div>))}</div>
+      </div>
+      <div className="ef"><Mo s={9} c="var(--tx-lo)" w={700} st={{width:36,flexShrink:0}}>FROM</Mo><select value={from} onChange={e=>setFrom(e.target.value)} className="sel">{EMAILS.map(e=>(<option key={e} value={e}>{e}</option>))}</select></div>
+      <div className="ef"><Mo s={9} c="var(--tx-lo)" w={700} st={{width:36,flexShrink:0}}>TO</Mo><input value={to} onChange={e=>setTo(e.target.value)} placeholder="recipient@company.com" className="inp"/></div>
+      <div className="ef"><Mo s={9} c="var(--tx-lo)" w={700} st={{width:36,flexShrink:0}}>SUBJ</Mo><input value={subj} onChange={e=>setSubj(e.target.value)} placeholder="Subject line..." className="inp"/></div>
+      <textarea value={body} onChange={e=>setBody(e.target.value)} className="eta" rows={5}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Mo s={9} c="var(--tx-lo)">{sent.length>0?`Last → ${sent[sent.length-1].to}`:""}</Mo><button onClick={send} disabled={sending} className={`send-btn ${sending?"sending":""}`}>{sending?"SENDING...":"SEND ↗"}</button></div>
+    </div>
+  </Card>);
+}
+
+function JobsCard(){
+  const [fl,setFl]=useState("all");const [sv,setSv]=useState(new Set());
+  const filters=["all","high chance","senior","lead","director+"];
+  const list=fl==="all"?JOBS:fl==="high chance"?JOBS.filter(j=>j.chance==="high"):fl==="senior"?JOBS.filter(j=>j.tags[0]==="Senior"||j.tags[0]==="Mid-Senior"||j.tags[0]==="Mid"):fl==="lead"?JOBS.filter(j=>j.tags[0]==="Lead"):JOBS.filter(j=>j.tags[0]==="Director"||j.tags[0]==="Principal");
+  const chanceColor={high:"var(--tx-hi)",medium:"var(--tx-md)",low:"var(--tx-lo)"};
+  const chanceLabel={high:"HIGH FIT",medium:"POSSIBLE",low:"REACH"};
+  return(<Card area="jobs"><Head left={<>{Ic.jobs({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">JOBS</Mo></>} right={<Tag inv>{JOBS.length} NEW</Tag>}/>
+    <div className="fb">{filters.map(t=>(<button key={t} onClick={()=>setFl(t)} className={`chip ${fl===t?"on":""}`}>{t}</button>))}</div>
+    <div className="cs">{list.map(j=>(<div key={j.id} className="lr jr" style={{flexDirection:"column",alignItems:"stretch",gap:0}}>
+      {j.hot&&<div className="hb"/>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:600,color:"var(--tx-hi)",lineHeight:1.3}}>{j.title}</div>
+          <Mo s={11} c="var(--tx-md)" w={400}>{j.co} · {j.loc}</Mo>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+          <Tag inv={j.match>=90}>{j.match}%</Tag>
+          <button onClick={e=>{e.stopPropagation();const btn=e.currentTarget;btn.classList.add("star-pop");setTimeout(()=>btn.classList.remove("star-pop"),350);setSv(p=>{const n=new Set(p);n.has(j.id)?n.delete(j.id):n.add(j.id);return n;});}} className="sb" style={{color:sv.has(j.id)?"var(--tx-hi)":"var(--tx-lo)"}}>{sv.has(j.id)?Ic.starFill({s:14,c:"var(--tx-hi)"}):Ic.star({s:14,c:"var(--tx-lo)"})}</button>
+        </div>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6,gap:6,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}}>
+          <Tag>{j.tags[0]}</Tag>
+          <span style={{display:"inline-flex",alignItems:"center",gap:3}}>
+            <span style={{width:5,height:5,borderRadius:"50%",background:chanceColor[j.chance],flexShrink:0}}/>
+            <Mo s={8} c={chanceColor[j.chance]} w={700} ls="0.06em">{chanceLabel[j.chance]}</Mo>
+          </span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginLeft:"auto"}}>
+          <Mo s={9} c="var(--tx-lo)">{j.age}</Mo>
+          <Mo s={9} c="var(--tx-hi)">{j.salary}</Mo>
+        </div>
+      </div>
+    </div>))}</div>
+    <div className="cf"><Mo s={9} c="var(--tx-lo)">70+ BOARDS</Mo><Mo s={9} c="var(--tx-hi)" st={{cursor:"pointer"}}>ALL →</Mo></div>
+  </Card>);
+}
+
+// Timer merged into TodoStatsCard below
+
+function TodoStatsCard(){
+  const [todos,setTodos]=useState(INIT_TODOS);const [inp,setInp]=useState("");const [active,setActive]=useState("tasks");
+  const toggle=id=>setTodos(t=>t.map(x=>x.id===id?{...x,done:!x.done}:x));
+  const remove=id=>setTodos(t=>t.filter(x=>x.id!==id));
+  const add=()=>{if(!inp.trim())return;setTodos(t=>[...t,{id:Date.now(),text:inp.trim(),done:false,pri:"normal"}]);setInp("");};
+  const pc={urgent:"var(--tx-hi)",important:"var(--tx-md)",normal:"var(--tx-lo)"};
+  const stats=[{l:"COLD EMAILS",v:"3"},{l:"APPS SENT",v:"14"},{l:"FOCUS",v:"4.5h"},{l:"STREAK",v:"7d"}];
+  const [dur,setDur]=useState(1500);const [left,setLeft]=useState(1500);const [run,setRun]=useState(false);const [brk,setBrk]=useState(false);const [sess,setSess]=useState(3);const [flash,setFlash]=useState(false);const iv=useRef(null);
+  useEffect(()=>{if(run&&left>0)iv.current=setInterval(()=>setLeft(t=>t-1),1000);else if(left===0&&run){setRun(false);setFlash(true);setTimeout(()=>setFlash(false),1600);if(!brk){setSess(s=>s+1);setBrk(true);setLeft(300);}else{setBrk(false);setLeft(dur);}}return()=>clearInterval(iv.current);},[run,left,brk,dur]);
+  const pct=brk?1-left/300:1-left/dur;const st=!run&&left===dur&&!brk?"READY":run?(brk?"BREAK":"FOCUS"):"PAUSED";
+
+  return(<Card area="todo" cls="ni"><div className="todo-wrap">
+    {/* POMODORO — vertical centered hero */}
+    <div className={`tmr-hero ${flash?"timer-done":""}`}>
+      <div style={{position:"relative"}}>
+        <svg width={96} height={96} viewBox="0 0 96 96" style={{transform:"rotate(-90deg)",display:"block"}}><circle cx={48} cy={48} r={42} fill="none" stroke="var(--bd)" strokeWidth={2}/><circle cx={48} cy={48} r={42} fill="none" stroke="var(--tx-hi)" strokeWidth={2} strokeDasharray={2*Math.PI*42} strokeDashoffset={2*Math.PI*42*(1-pct)} strokeLinecap="round" style={{transition:"stroke-dashoffset .8s cubic-bezier(.4,0,.2,1)"}}/></svg>
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <span style={{fontSize:20,fontWeight:800,fontFamily:"'IBM Plex Mono',monospace",color:"var(--tx-hi)",lineHeight:1}}>{fmt(left)}</span>
+          <Mo s={8} c="var(--tx-md)" st={{marginTop:3}}>{st}</Mo>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:4,alignItems:"center"}}>
+        <button onClick={()=>setRun(!run)} className="ba pri" style={{padding:"5px 16px",fontSize:9}}>{run?"PAUSE":"START"}</button>
+        <button onClick={()=>{setRun(false);setBrk(false);setLeft(dur);}} className="ba sec" style={{padding:"5px 12px",fontSize:9}}>RESET</button>
+      </div>
+      <div style={{display:"flex",gap:3,alignItems:"center"}}>
+        {[25,30,35,40].map(m=>(<button key={m} onClick={()=>{if(!run){setDur(m*60);setLeft(m*60);}}} className={`csm ${dur===m*60?"on":""}`} style={{opacity:run?.35:1,fontSize:8,padding:"2px 7px"}}>{m}m</button>))}
+        <Mo s={8} c="var(--tx-lo)" st={{marginLeft:4}}>{sess} today</Mo>
+      </div>
+    </div>
+    {/* TASKS ACCORDION */}
+    <button className={`aH ${active==="tasks"?"open":""}`} onClick={()=>setActive(active==="tasks"?null:"tasks")}><div className="aH-l"><span className="aA">{active==="tasks"?Ic.chevDown({s:10,c:"var(--tx-md)"}):Ic.chevRight({s:10,c:"var(--tx-md)"})}</span>{Ic.tasks({s:12,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">TASKS</Mo></div><Mo s={9} c="var(--tx-lo)">{todos.filter(t=>!t.done).length} LEFT</Mo></button>
+    <div className={`aB ${active==="tasks"?"open":""}`}><div className="cs">{todos.length===0?<div style={{padding:"16px 12px",textAlign:"center"}}><Mo s={10} c="var(--tx-lo)">No tasks yet</Mo></div>:<>{todos.filter(t=>!t.done).map(t=>(<div key={t.id} className="lr" style={{transition:"all .3s cubic-bezier(.4,0,.2,1)"}}><div className="ck" onClick={()=>toggle(t.id)} style={{borderColor:pc[t.pri],cursor:"pointer"}}/><span style={{fontSize:12,color:"var(--tx-md)",flex:1,lineHeight:1.35,transition:"all .3s",cursor:"pointer"}} onClick={()=>toggle(t.id)}>{t.text}</span><span style={{width:5,height:5,borderRadius:"50%",background:pc[t.pri],flexShrink:0}}/><button onClick={()=>remove(t.id)} className="task-rm">{Ic.x({s:10,c:"var(--tx-lo)"})}</button></div>))}{todos.some(t=>t.done)&&<>{todos.filter(t=>t.done).map(t=>(<div key={t.id} className="lr" style={{opacity:.4,transition:"all .3s cubic-bezier(.4,0,.2,1)"}}><div className="ck done" onClick={()=>toggle(t.id)} style={{cursor:"pointer"}}>{Ic.check({s:10,c:"var(--tx-lo)"})}</div><span style={{fontSize:12,color:"var(--tx-lo)",textDecoration:"line-through",flex:1,transition:"all .3s",cursor:"pointer"}} onClick={()=>toggle(t.id)}>{t.text}</span><button onClick={()=>remove(t.id)} className="task-rm">{Ic.x({s:10,c:"var(--tx-lo)"})}</button></div>))}</>}</>}</div><div className="ti"><input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder="+ Add task..." className="inp"/><button onClick={add} className="ab2">ADD</button></div></div>
+    {/* STATS ACCORDION */}
+    <button className={`aH ${active==="stats"?"open":""}`} onClick={()=>setActive(active==="stats"?null:"stats")} style={{borderTop:"1px solid var(--bd)"}}><div className="aH-l"><span className="aA">{active==="stats"?Ic.chevDown({s:10,c:"var(--tx-md)"}):Ic.chevRight({s:10,c:"var(--tx-md)"})}</span>{Ic.stats({s:12,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">STATS</Mo></div>{active!=="stats"&&<Mo s={9} c="var(--tx-lo)">14 APPS · 3 EMAILS</Mo>}</button>
+    <div className={`aB ${active==="stats"?"open":""}`}><div className="sg">{stats.map((s,i)=>(<div key={i} className="sc"><Mo s={8} c="var(--tx-lo)" ls="0.1em">{s.l}</Mo><div className="sn">{s.v}</div></div>))}</div></div>
+  </div></Card>);
+}
+
+function CalendarCard(){
+  const [checked,setChecked]=useState(()=>{const s=new Set();[3,4,5,7,8,9,10,12,13,14,15,17,18].forEach(d=>s.add(d));return s;});
+  const now=new Date();const yr=now.getFullYear();const today=now.getDate();
+  const daysInMonth=new Date(yr,now.getMonth()+1,0).getDate();const firstDay=new Date(yr,now.getMonth(),1).getDay();
+  const toggleDay=d=>{if(d>today)return;setChecked(p=>{const n=new Set(p);n.has(d)?n.delete(d):n.add(d);return n;});};
+  const streak=(()=>{let s=0;for(let d=today;d>=1;d--){if(checked.has(d)||(d===today))s++;else break;}return s;})();
+  return(<Card area="calendar"><Head left={<>{Ic.cal({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">CALENDAR</Mo></>} right={<div style={{display:"flex",alignItems:"center",gap:5}}>{streak>1&&<Tag inv>{streak}D</Tag>}<Mo s={9} c="var(--tx-lo)">{checked.size}/{daysInMonth}</Mo></div>}/>
+    <div className="cal-body">
+      <Mo s={10} c="var(--tx-md)" w={600} st={{padding:"0 16px 6px"}}>{now.toLocaleString("en-US",{month:"long"})} {yr}</Mo>
+      <div className="cal-days">{["S","M","T","W","T","F","S"].map((d,i)=>(<div key={i} className="cal-dlbl">{d}</div>))}</div>
+      <div className="cal-grid">{Array.from({length:firstDay},(_,i)=><div key={"e"+i} className="cal-c"/>)}{Array.from({length:daysInMonth},(_,i)=>{const d=i+1;const done=checked.has(d);const isToday=d===today;const future=d>today;return(<button key={d} onClick={()=>toggleDay(d)} className={`cal-c ${done?"dn":""} ${isToday?"td":""} ${future?"fu":""}`} disabled={future}><span className="cal-n">{d}</span>{done&&<span className="cal-ck">{Ic.check({s:9,c:isToday?"var(--inv-tx)":"var(--tx-hi)"})}</span>}</button>);})}</div>
+    </div>
+  </Card>);
+}
+
+function SocialCard(){return(<Card area="social"><Head left={<>{Ic.social({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">LEADS</Mo></>} right={<Tag inv>{SOCIAL.filter(s=>s.q==="high").length} HIGH</Tag>}/><div className="cs">{SOCIAL.map((s,i)=>(<div key={i} className="lr" style={{flexDirection:"column",gap:4,alignItems:"stretch"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:6}}><div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,overflow:"hidden"}}><Tag>{s.plat}</Tag><span style={{fontSize:11,fontWeight:600,color:"var(--tx-md)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.author}</span></div><div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Dot color={s.q==="high"?"var(--tx-hi)":"var(--tx-lo)"} size={5}/><Mo s={9} c="var(--tx-lo)">{s.t}</Mo></div></div><div className="stxt">{s.txt}</div></div>))}</div><div className="cf" style={{justifyContent:"flex-end"}}><Mo s={9} c="var(--tx-hi)" st={{cursor:"pointer"}}>ALL →</Mo></div></Card>);}
+
+function LogBar(){const [logs,setLogs]=useState(LOGS.slice(0,3));const idx=useRef(3);useEffect(()=>{const i=setInterval(()=>{setLogs(p=>{const n=[...p,LOGS[idx.current%LOGS.length]];idx.current++;return n.slice(-4);});},2800);return()=>clearInterval(i);},[]);return(<div className="card" style={{gridArea:"log"}}><div className="ci li"><div style={{display:"flex",alignItems:"center",gap:5}}>{Ic.log({s:11,c:"var(--tx-lo)"})}<Mo s={9} c="var(--tx-lo)" ls="0.1em" w={700}>LOG</Mo></div><div className="ll">{logs.map((l,i)=>(<div key={i+l} className="ln" style={{color:i===logs.length-1?"var(--tx-hi)":"var(--tx-lo)"}}><span style={{color:"var(--tx-lo)",marginRight:8}}>{`07:0${1+i}:${String(10+i*4).padStart(2,"0")}`}</span>{l}</div>))}</div></div></div>);}
+
+function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
+  const [tab,setTab]=useState("profile");const [adding,setAdding]=useState(null);const [addEmail,setAddEmail]=useState("");
+  const provs=[{k:"google",l:"Gmail",icon:"G",color:"#ea4335"},{k:"outlook",l:"Outlook",icon:"O",color:"#0078d4"},{k:"icloud",l:"iCloud",icon:"☁",color:"#999"}];
+  const addAccount=prov=>{setAdding(prov);setAddEmail("");};
+  const confirmAdd=()=>{if(!addEmail.trim()||!adding)return;setAccounts(p=>[...p,{id:Date.now(),email:addEmail.trim(),prov:adding,status:"syncing"}]);setTimeout(()=>setAccounts(p=>p.map(a=>a.status==="syncing"?{...a,status:"ok"}:a)),1500);setAdding(null);setAddEmail("");};
+  const removeAccount=id=>setAccounts(p=>p.filter(a=>a.id!==id));
+  const upd=(k,v)=>setConfig(p=>({...p,[k]:v}));
+  const tabs=[{k:"profile",l:"PROFILE",ic:"social"},{k:"layout",l:"LAYOUT",ic:"stats"},{k:"connect",l:"CONNECTIONS",ic:"link"}];
+
+  // Grid presets
+  const LAYOUTS={
+    default:{name:"Default",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
+    mailFirst:{name:"Mail Focus",areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 340px 360px 48px"},
+    compact:{name:"Compact",areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"320px 340px 340px 48px"},
+    newsHeavy:{name:"Intel Focus",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
+  };
+  const cards=[{k:"mail",l:"Mail"},{k:"jobs",l:"Jobs"},{k:"todo",l:"Focus · Tasks · Stats"},{k:"news",l:"News Radar"},{k:"social",l:"Leads"},{k:"calendar",l:"Calendar"},{k:"email",l:"Cold Email"},{k:"log",l:"Activity Log"}];
+
+  return(<div className="mbg" onClick={onClose}><div className="mbox mbox-lg" onClick={e=>e.stopPropagation()}>
+    <div className="mhd">
+      <div style={{display:"flex",alignItems:"center",gap:6}}>{Ic.settings({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">SETTINGS</Mo></div>
+      <button onClick={onClose} className="mx">{Ic.x({s:16,c:"var(--tx-lo)"})}</button>
+    </div>
+    <div className="set-tabs">{tabs.map(t=>(<button key={t.k} onClick={()=>setTab(t.k)} className={`ntab ${tab===t.k?"on":""}`} style={{padding:"5px 12px",fontSize:8,display:"flex",alignItems:"center",gap:4}}>{Ic[t.ic]({s:10,c:tab===t.k?"var(--inv-tx)":"var(--tx-lo)"})}{t.l}</button>))}</div>
+    <div className="mbd">
+
+      {/* ═══ PROFILE TAB ═══ */}
+      {tab==="profile"&&<div className="set-section">
+        <div className="set-field">
+          <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700}>DISPLAY NAME</Mo>
+          <input value={config.name} onChange={e=>upd("name",e.target.value)} className="inp set-inp" placeholder="Your name..."/>
+        </div>
+        <div className="set-field">
+          <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700}>TITLE / ROLE</Mo>
+          <input value={config.title} onChange={e=>upd("title",e.target.value)} className="inp set-inp" placeholder="Principal Designer..."/>
+        </div>
+        <div className="set-field">
+          <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700}>LOCATION / TIMEZONE</Mo>
+          <input value={config.tz} onChange={e=>upd("tz",e.target.value)} className="inp set-inp" placeholder="WAT · Lagos, NG"/>
+        </div>
+        <div className="set-field">
+          <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700}>HERO TITLE</Mo>
+          <div style={{display:"flex",gap:4}}>
+            <input value={config.heroLine1} onChange={e=>upd("heroLine1",e.target.value)} className="inp set-inp" placeholder="DAILY" style={{flex:1}}/>
+            <input value={config.heroLine2} onChange={e=>upd("heroLine2",e.target.value)} className="inp set-inp" placeholder="DIGEST" style={{flex:1}}/>
+          </div>
+          <Mo s={8} c="var(--tx-lo)" st={{marginTop:2}}>Two words displayed stacked in the hero</Mo>
+        </div>
+        <div className="set-field">
+          <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700}>PRIMARY EMAIL</Mo>
+          <select value={config.primaryEmail} onChange={e=>upd("primaryEmail",e.target.value)} className="sel set-inp">{accounts.map(a=>(<option key={a.id} value={a.email}>{a.email}</option>))}</select>
+        </div>
+        <div className="set-field">
+          <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700}>SYNC INTERVAL</Mo>
+          <div style={{display:"flex",gap:3}}>{[30,60,120,300].map(s=>(<button key={s} onClick={()=>upd("syncInterval",s)} className={`csm ${config.syncInterval===s?"on":""}`}>{s<60?`${s}s`:`${s/60}m`}</button>))}</div>
+        </div>
+      </div>}
+
+      {/* ═══ LAYOUT TAB ═══ */}
+      {tab==="layout"&&<div className="set-section">
+        <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700} st={{marginBottom:8}}>GRID PRESET</Mo>
+        <div className="set-layouts">{Object.entries(LAYOUTS).map(([k,v])=>(
+          <button key={k} onClick={()=>upd("layout",k)} className={`set-layout-btn ${config.layout===k?"on":""}`}>
+            <div className="set-layout-preview">{v.areas.split('"').filter(s=>s.trim()).slice(0,4).map((row,i)=>{
+              const cells=[...new Set(row.trim().split(/\s+/))];
+              return <div key={i} style={{display:"flex",gap:1,height:cells.length>4?6:8}}>{cells.map((c,j)=><div key={j} style={{flex:1,background:c==="log"?"var(--bd)":"var(--tx-lo)",opacity:0.3,minWidth:4}}/>)}</div>;
+            })}</div>
+            <Mo s={8} c={config.layout===k?"var(--tx-hi)":"var(--tx-lo)"} w={config.layout===k?700:400}>{v.name}</Mo>
+          </button>
+        ))}</div>
+
+        <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700} st={{marginTop:16,marginBottom:8}}>VISIBLE CARDS</Mo>
+        <div className="set-cards-list">{cards.map(c=>(
+          <div key={c.k} className="sr" style={{padding:"6px 0"}}>
+            <div className="sr-l"><Mo s={10} c="var(--tx-md)">{c.l}</Mo></div>
+            <button onClick={()=>{const s=new Set(config.hiddenCards||[]);s.has(c.k)?s.delete(c.k):s.add(c.k);upd("hiddenCards",[...s]);}} className={`set-toggle ${!(config.hiddenCards||[]).includes(c.k)?"on":""}`}>
+              <div className="set-toggle-dot"/>
+            </button>
+          </div>
+        ))}</div>
+
+        <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700} st={{marginTop:16,marginBottom:8}}>ROW HEIGHTS</Mo>
+        <div style={{display:"flex",gap:4}}>
+          {["Row 1","Row 2","Row 3"].map((r,i)=>(<div key={i} style={{flex:1}}>
+            <Mo s={8} c="var(--tx-lo)" st={{marginBottom:4}}>{r}</Mo>
+            <input value={(config.rowHeights||[380,340,360])[i]} onChange={e=>{const h=[...(config.rowHeights||[380,340,360])];h[i]=Number(e.target.value)||300;upd("rowHeights",h);}} className="inp set-inp" type="number" style={{width:"100%"}}/>
+          </div>))}
+        </div>
+      </div>}
+
+      {/* ═══ CONNECTIONS TAB ═══ */}
+      {tab==="connect"&&<div className="set-section">
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <Mo s={10} c="var(--tx-hi)" w={700} ls="0.12em">MAIL ACCOUNTS</Mo>
+            <Mo s={8} c="var(--tx-lo)">{accounts.filter(a=>a.status==="ok").length} CONNECTED</Mo>
+          </div>
+          {accounts.map(a=>{const pr=provs.find(p=>p.k===a.prov);return(
+            <div key={a.id} className="sr">
+              <div className="sr-l">
+                <span className="set-prov-icon" style={{borderColor:pr?.color||"var(--bd)"}}>{pr?.icon}</span>
+                <div style={{minWidth:0}}>
+                  <span style={{fontSize:12,color:"var(--tx-hi)",fontWeight:600,display:"block"}}>{a.email}</span>
+                  <Mo s={8} c="var(--tx-lo)">{pr?.l||a.prov}</Mo>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                <Dot color={a.status==="ok"?"var(--tx-hi)":a.status==="syncing"?"var(--tx-md)":"var(--tx-lo)"} size={6} pulse={a.status==="syncing"}/>
+                <Tag>{a.status==="ok"?"SYNCED":a.status==="syncing"?"SYNCING...":"ERROR"}</Tag>
+                <button onClick={()=>removeAccount(a.id)} className="tpl-del" style={{padding:"2px 6px"}}>{Ic.x({s:12,c:"currentColor"})}</button>
+              </div>
+            </div>);})}
+          {!adding?(<div className="set-add-row">
+            <Mo s={9} c="var(--tx-lo)" w={600}>Add account</Mo>
+            <div style={{display:"flex",gap:3}}>{provs.map(p=>(<button key={p.k} onClick={()=>addAccount(p.k)} className="set-add-btn"><span className="set-prov-icon sm" style={{borderColor:p.color}}>{p.icon}</span><Mo s={8} c="var(--tx-md)" w={600}>{p.l}</Mo></button>))}</div>
+          </div>):(<div className="set-add-form">
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+              <span className="set-prov-icon sm" style={{borderColor:provs.find(p=>p.k===adding)?.color}}>{provs.find(p=>p.k===adding)?.icon}</span>
+              <Mo s={9} c="var(--tx-hi)" w={700}>Connect {provs.find(p=>p.k===adding)?.l}</Mo>
+            </div>
+            <div style={{display:"flex",gap:4}}>
+              <input value={addEmail} onChange={e=>setAddEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&confirmAdd()} placeholder={`your@${adding==="google"?"gmail.com":adding==="outlook"?"outlook.com":"icloud.com"}`} className="inp" style={{flex:1,padding:"6px 10px",fontSize:11}}/>
+              <button onClick={confirmAdd} className="send-btn" style={{padding:"6px 14px",fontSize:9}}>CONNECT</button>
+              <button onClick={()=>setAdding(null)} className="ab2" style={{padding:"6px 10px",fontSize:9}}>{Ic.x({s:9,c:"currentColor"})}</button>
+            </div>
+            <Mo s={8} c="var(--tx-lo)" st={{marginTop:4,display:"block"}}>{adding==="google"?"Opens Google OAuth — read-only access":adding==="outlook"?"Opens Microsoft login — Mail.Read scope":"Requires App-Specific Password from appleid.apple.com"}</Mo>
+          </div>)}
+        </div>
+        <div style={{marginTop:16}}>
+          <Mo s={10} c="var(--tx-hi)" w={700} ls="0.12em" st={{display:"block",marginBottom:8}}>SOCIAL</Mo>
+          {[{l:"LinkedIn · @adewale",s:"ok"},{l:"X · @waborle",s:"ok"},{l:"Contra",s:"warn"},{l:"Reddit",s:"off"}].map(it=>(
+            <div key={it.l} className="sr"><div className="sr-l"><Dot color={it.s==="ok"?"var(--tx-hi)":it.s==="warn"?"var(--tx-md)":"var(--tx-lo)"} size={6}/><span style={{fontSize:12,color:"var(--tx-md)"}}>{it.l}</span></div><Tag inv={it.s==="warn"} style={{cursor:"pointer"}}>{it.s==="ok"?"SYNCED":it.s==="warn"?"RECONNECT":"CONNECT"}</Tag></div>
+          ))}
+        </div>
+        <div style={{marginTop:16}}>
+          <Mo s={10} c="var(--tx-hi)" w={700} ls="0.12em" st={{display:"block",marginBottom:8}}>MUSIC</Mo>
+          {[{l:"Spotify",s:"off"},{l:"Apple Music",s:"off"}].map(it=>(
+            <div key={it.l} className="sr"><div className="sr-l"><Dot color={it.s==="ok"?"var(--tx-hi)":"var(--tx-lo)"} size={6}/><span style={{fontSize:12,color:"var(--tx-md)"}}>{it.l}</span></div><Tag style={{cursor:"pointer"}}>{it.s==="ok"?"CONNECTED":"CONNECT"}</Tag></div>
+          ))}
+        </div>
+        <div style={{marginTop:16}}>
+          <Mo s={10} c="var(--tx-hi)" w={700} ls="0.12em" st={{display:"block",marginBottom:8}}>JOB BOARDS</Mo>
+          {[{l:"Greenhouse",s:"ok"},{l:"Lever",s:"ok"},{l:"Wellfound",s:"ok"},{l:"LinkedIn Jobs",s:"warn"}].map(it=>(
+            <div key={it.l} className="sr"><div className="sr-l"><Dot color={it.s==="ok"?"var(--tx-hi)":it.s==="warn"?"var(--tx-md)":"var(--tx-lo)"} size={6}/><span style={{fontSize:12,color:"var(--tx-md)"}}>{it.l}</span></div><Tag inv={it.s==="warn"} style={{cursor:"pointer"}}>{it.s==="ok"?"SYNCED":it.s==="warn"?"RECONNECT":"CONNECT"}</Tag></div>
+          ))}
+        </div>
+      </div>}
+
+    </div>
+  </div></div>);
+}
+
+function App(){
+  const [settings,setSettings]=useState(false);const [bh,setBh]=useState(false);const [light,setLight]=useState(false);
+  const [accounts,setAccounts]=useState([
+    {id:1,email:"adewale@gmail.com",prov:"google",status:"ok"},
+    {id:2,email:"wale@layoutstudio.co",prov:"google",status:"ok"},
+    {id:3,email:"wale@021labs.com",prov:"outlook",status:"ok"},
+  ]);
+  const [config,setConfig]=useState({
+    name:"ADEWALE ALOBA",title:"Principal Designer",tz:"WAT",heroLine1:"DAILY",heroLine2:"DIGEST",
+    primaryEmail:"adewale@gmail.com",syncInterval:60,layout:"default",hiddenCards:[],rowHeights:[380,340,360],
+  });
+
+  // Grid presets (must match settings modal)
+  const LAYOUTS={
+    default:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
+    mailFirst:{areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 340px 360px 48px"},
+    compact:{areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"320px 340px 340px 48px"},
+    newsHeavy:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
+  };
+
+  const hidden=new Set(config.hiddenCards||[]);
+  const ly=LAYOUTS[config.layout]||LAYOUTS.default;
+  const rh=config.rowHeights||[380,340,360];
+  const gridStyle={gridTemplateAreas:ly.areas,gridTemplateRows:`${rh[0]}px ${rh[1]}px ${rh[2]}px 48px`};
+
+  return(<div className={`root ${light?"light":""}`}>
+    <Hero onSettings={()=>setSettings(true)} light={light} setLight={setLight} config={config}/>
+    <main className={`bento ${bh?"bh":""}`} onMouseEnter={()=>setBh(true)} onMouseLeave={()=>setBh(false)} style={gridStyle}>
+      {!hidden.has("mail")&&<MailCard/>}
+      {!hidden.has("jobs")&&<JobsCard/>}
+      {!hidden.has("todo")&&<TodoStatsCard/>}
+      {!hidden.has("news")&&<NewsCard/>}
+      {!hidden.has("social")&&<SocialCard/>}
+      {!hidden.has("calendar")&&<CalendarCard/>}
+      {!hidden.has("email")&&<ColdEmailCard/>}
+      {!hidden.has("log")&&<LogBar/>}
+    </main>
+    {settings&&<SettingsModal onClose={()=>setSettings(false)} accounts={accounts} setAccounts={setAccounts} config={config} setConfig={setConfig}/>}
+    <style>{`
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+/* ═══ CSS VARIABLES — dark default ═══ */
+.root{--bg:#0a0a0b;--sf:#111113;--rs:#18181b;--bd:rgba(255,255,255,.06);--bd-hi:rgba(255,255,255,.12);--tx-lo:rgba(255,255,255,.35);--tx-md:rgba(255,255,255,.55);--tx-hi:rgba(255,255,255,.9);--inv-bg:#fff;--inv-tx:#111;--glow:rgba(255,255,255,.03);min-height:100vh;background:var(--bg);color:var(--tx-md);font-family:'DM Sans',sans-serif;overflow-x:hidden;transition:all .4s cubic-bezier(.4,0,.2,1);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+/* ═══ LIGHT MODE ═══ */
+.root.light{--bg:#f7f7f5;--sf:#ffffff;--rs:#f2f1ee;--bd:rgba(0,0,0,.06);--bd-hi:rgba(0,0,0,.12);--tx-lo:rgba(0,0,0,.35);--tx-md:rgba(0,0,0,.55);--tx-hi:rgba(0,0,0,.88);--inv-bg:#1a1a1e;--inv-tx:#f5f5f5;--glow:rgba(0,0,0,.02);}
+.root.light .hero-dim{background:rgba(247,247,245,0.1);}
+.root.light .hero-bg{filter:none;opacity:1;}
+.root.light .hero{background:#F0F0F0;}
+.root.light .hero-t{color:rgba(0,0,0,.88);}
+.root.light .hero-d{color:rgba(0,0,0,.4);}
+.root.light .hero-name{color:rgba(0,0,0,.7);}
+.root.light .hero-trail{opacity:0.3;}
+.root.light .hero .dot{background:rgba(0,0,0,.7);}
+.root.light .hero-top-l span,.root.light .hero-top-r span{color:rgba(0,0,0,.4) !important;}
+.root.light .pfp{border-color:rgba(0,0,0,.08);background:rgba(0,0,0,.02);}.root.light .pfp:hover{border-color:rgba(0,0,0,.15);}
+.root.light .pfp-empty span{color:rgba(0,0,0,.35) !important;}
+.root.light .mw{border-color:rgba(0,0,0,.06);background:rgba(255,255,255,.7);backdrop-filter:blur(16px);}
+.root.light .mw-svc{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:rgba(0,0,0,.7);}.root.light .mw-svc:hover{background:rgba(0,0,0,.88);color:#fff;border-color:rgba(0,0,0,.88);}
+.root.light .mw-icon{color:rgba(0,0,0,.4);}
+.root.light .mw-song{color:rgba(0,0,0,.88);}.root.light .mw-artist{color:rgba(0,0,0,.45);}
+.root.light .mw-bar{background:rgba(0,0,0,.08);}.root.light .mw-fill{background:rgba(0,0,0,.5);}
+.root.light .mw-album{color:rgba(0,0,0,.25);}.root.light .mw-x{color:rgba(0,0,0,.3);}.root.light .mw-x:hover{color:rgba(0,0,0,.88);}
+.root.light .mw-pp{color:rgba(0,0,0,.88);}.root.light .mw-svc-badge{background:rgba(0,0,0,.04);}
+.root.light .eq-bar{background:rgba(0,0,0,.5);}
+
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px;}::selection{background:rgba(99,102,241,0.15);}input::placeholder,textarea::placeholder{color:var(--tx-lo);}select{-webkit-appearance:none;}
+.dot{display:inline-block;border-radius:50%;flex-shrink:0;}.pulse{animation:gl 1.4s ease-in-out infinite alternate;}@keyframes gl{from{box-shadow:0 0 2px rgba(255,255,255,.2);}to{box-shadow:0 0 10px rgba(255,255,255,.4);}}
+.root.light .pulse{animation:gl2 1.4s ease-in-out infinite alternate;}@keyframes gl2{from{box-shadow:0 0 2px rgba(0,0,0,.1);}to{box-shadow:0 0 10px rgba(0,0,0,.2);}}
+.tag{display:inline-flex;align-items:center;padding:2px 7px;font-size:9px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;background:var(--rs);color:var(--tx-md);border:1px solid var(--bd);white-space:nowrap;border-radius:3px;}.tag.inv{background:var(--inv-bg);color:var(--inv-tx);border-color:transparent;}
+
+/* ═══ HERO ═══ */
+.hero{position:relative;border-bottom:1px solid var(--bd);overflow:hidden;min-height:320px;}
+.hero-bg{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:0;filter:contrast(1.1) brightness(1.1);}
+.hero-dim{position:absolute;inset:0;background:rgba(0,0,0,0.35);z-index:1;pointer-events:none;}
+.hero-trail{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10;image-rendering:pixelated;opacity:0.45;}
+.hero-c{position:relative;z-index:20;display:flex;flex-direction:column;justify-content:space-between;min-height:320px;padding:14px 20px 18px;}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}.hero-top-l,.hero-top-r{display:flex;align-items:center;gap:8px;}
+.hero-mid{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex:1;padding:20px 0 0;}
+.hero-l{display:flex;flex-direction:column;gap:4px;justify-content:flex-end;min-width:0;}
+.hero-r{display:flex;align-items:flex-end;gap:10px;flex-shrink:0;}
+.hero-t{font-family:'IBM Plex Mono',monospace;font-size:clamp(48px,8vw,100px);font-weight:800;line-height:.86;letter-spacing:-.05em;color:#fff;}
+.hero-d{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;color:#aaa;margin-top:6px;}
+.hero-name{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:#ddd;font-weight:700;margin-top:10px;}
+.hub-btn,.lt-btn{background:transparent;border:1px solid rgba(255,255,255,.1);padding:5px 12px;cursor:pointer;color:rgba(255,255,255,.5);font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;transition:all .2s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:4px;border-radius:6px;}.hub-btn:hover,.lt-btn:hover{background:rgba(255,255,255,.9);color:#111;border-color:transparent;}
+.root.light .hub-btn,.root.light .lt-btn{border-color:rgba(0,0,0,.08);color:rgba(0,0,0,.45);}.root.light .hub-btn:hover,.root.light .lt-btn:hover{background:rgba(0,0,0,.88);color:#fff;border-color:transparent;}
+
+/* PROFILE PHOTO */
+.pfp{width:72px;height:72px;border:1px solid rgba(255,255,255,.08);cursor:pointer;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.03);transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:10px;}.pfp:hover{border-color:rgba(255,255,255,.2);}
+.pfp-img{width:100%;height:100%;object-fit:cover;}.pfp-img.dith{image-rendering:pixelated;filter:contrast(1.3);}.pfp-empty{display:flex;flex-direction:column;align-items:center;gap:2px;}
+
+/* MUSIC WIDGET */
+.mw{border:1px solid rgba(255,255,255,.06);padding:10px 14px;display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.3);backdrop-filter:blur(16px);min-width:240px;border-radius:10px;}
+.mw-connect{flex-direction:row;}.mw-playing{flex-direction:row;align-items:stretch;}
+.mw-icon{font-size:18px;color:#aaa;width:28px;text-align:center;flex-shrink:0;}
+.mw-btns{display:flex;gap:4px;flex-shrink:0;}
+.mw-svc{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6);padding:5px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:6px;}.mw-svc:hover{background:rgba(255,255,255,.9);color:#111;border-color:transparent;}
+.mw-album{font-family:'IBM Plex Mono',monospace;font-size:6px;line-height:1;color:#666;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;width:36px;}
+.mw-track{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.mw-track-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;}
+.mw-song{font-size:11px;font-weight:600;color:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mw-artist{font-size:9px;color:#888;margin-top:1px;}
+.mw-x{background:none;border:none;color:#666;cursor:pointer;font-size:10px;padding:0;line-height:1;}.mw-x:hover{color:#fff;}
+.mw-bar-wrap{margin-top:2px;}.mw-bar{height:2px;background:rgba(255,255,255,.12);width:100%;}.mw-fill{height:100%;background:#ccc;transition:width .3s;}.mw-times{display:flex;justify-content:space-between;margin-top:2px;}
+.mw-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:3px;}
+.mw-svc-badge{background:rgba(255,255,255,.06);padding:1px 6px;}.mw-playback{display:flex;align-items:center;gap:8px;}
+.mw-pp{background:none;border:none;cursor:pointer;padding:0;color:#ccc;font-size:10px;}
+.eq{display:flex;gap:2px;align-items:flex-end;height:12px;}.eq-bar{width:2px;height:3px;background:#ccc;}.eq-bar.on{animation:eq .6s ease-in-out infinite alternate;}@keyframes eq{0%{height:3px;}50%{height:11px;}100%{height:4px;}}
+
+@media(max-width:767px){.hero{min-height:auto;}.hero-c{min-height:auto;padding:12px;}.hero-t{font-size:clamp(36px,14vw,64px);}.hero-mid{flex-direction:column;gap:14px;}.hero-r{align-self:stretch;flex-wrap:wrap;}.mw{min-width:auto;flex:1;}}
+@media(max-width:480px){.hero-r{flex-direction:column;align-items:stretch;}.pfp{align-self:flex-start;}}
+
+/* ═══ BENTO ═══ */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:380px 340px 360px 48px;grid-template-areas:"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log";gap:1px;padding:0;transition:filter .6s cubic-bezier(.4,0,.2,1);}
+.bento.bh{filter:contrast(0.94) brightness(0.96);}.bento.bh .card:hover{filter:contrast(1.08) brightness(1.05);}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;}
+.card:hover{border-color:var(--bd-hi);}
+.card::before{content:'';position:absolute;inset:0;border-radius:8px;background:linear-gradient(180deg,var(--glow) 0%,transparent 40%);pointer-events:none;z-index:1;opacity:0;transition:opacity .3s;}.card:hover::before{opacity:1;}
+.root.light .bento.bh{filter:contrast(0.96) brightness(1.01);}.root.light .bento.bh .card:hover{filter:contrast(1.05) brightness(0.98);}
+@media(max-width:1399px){.bento{grid-template-rows:360px 320px 340px 48px;}}
+@media(max-width:1199px){.bento{grid-template-columns:repeat(12,1fr);grid-template-rows:340px 320px 340px 48px;grid-template-areas:"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log";}}
+@media(max-width:1023px){.bento{grid-template-columns:repeat(6,1fr);grid-template-rows:320px 300px 300px 340px 48px;grid-template-areas:"mail mail mail jobs jobs jobs""todo todo todo todo todo todo""news news news social social social""calendar calendar calendar email email email""log log log log log log";}}
+@media(max-width:767px){.bento{grid-template-columns:1fr 1fr;grid-template-rows:340px 360px 280px 280px 280px 340px 48px;grid-template-areas:"mail mail""jobs jobs""todo todo""news social""calendar calendar""email email""log log";padding:3px;gap:3px;}}
+@media(max-width:639px){.bento{grid-template-columns:1fr;grid-template-rows:repeat(7,auto) 48px;grid-template-areas:"todo""mail""jobs""news""social""calendar""email""log";}.ci{min-height:280px;}.li{min-height:auto!important;}}
+
+/* CARD */
+.card{position:relative;overflow:visible;animation:cI .4s ease both;}
+.ci{display:flex;flex-direction:column;height:100%;overflow:hidden;position:relative;z-index:1;}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bd);flex-shrink:0;gap:8px;}
+.card::before{content:'';position:absolute;inset:-1px;background:linear-gradient(135deg,rgba(128,128,128,0.03) 0%,transparent 40%,transparent 60%,rgba(128,128,128,0.02) 100%);pointer-events:none;z-index:0;}
+.card::after{content:'';position:absolute;inset:-2px;background:radial-gradient(ellipse at 30% 0%,rgba(128,128,128,0.05),transparent 50%),radial-gradient(ellipse at 70% 100%,rgba(128,128,128,0.03),transparent 50%);pointer-events:none;z-index:0;opacity:0;transition:opacity .4s;filter:blur(8px);}.card:hover::after{opacity:1;}
+.aw{display:flex;flex-direction:column;height:100%;background:var(--sf);border:1px solid var(--bd);overflow:hidden;position:relative;z-index:1;transition:border-color .2s;border-radius:8px;}.card:hover .aw{border-color:var(--bd-hi);}
+.todo-wrap{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.cal-body{flex:1;display:flex;flex-direction:column;padding:0;overflow:hidden;}
+.bento>:nth-child(1){animation-delay:.03s;}.bento>:nth-child(2){animation-delay:.06s;}.bento>:nth-child(3){animation-delay:.09s;}.bento>:nth-child(4){animation-delay:.12s;}.bento>:nth-child(5){animation-delay:.15s;}.bento>:nth-child(6){animation-delay:.18s;}.bento>:nth-child(7){animation-delay:.21s;}.bento>:nth-child(8){animation-delay:.24s;}
+@keyframes cI{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--bd);flex-shrink:0;gap:8px;}
+.cs{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;z-index:2;}.cf{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid var(--bd);flex-shrink:0;}
+.lr{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .2s cubic-bezier(.4,0,.2,1);}.lr:hover{background:var(--glow);}.lr:last-child{border-bottom:none;}
+
+/* MAIL */
+.mg2{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;padding:6px;align-content:start;flex-shrink:0;}
+.mt2{background:var(--rs);border:1px solid var(--bd);padding:8px 6px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;transition:all .2s cubic-bezier(.4,0,.2,1);width:100%;border-radius:6px;}.mt2:hover{border-color:var(--bd-hi);}
+.mn2{font-size:22px;font-weight:800;font-family:'IBM Plex Mono',monospace;line-height:1;letter-spacing:-.04em;color:var(--tx-hi);}
+.mail-feed{padding:6px 10px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto;}
+.mail-feed-item{padding:5px 8px;border-bottom:1px solid rgba(128,128,128,0.06);display:flex;flex-direction:column;gap:2px;}
+.mail-feed-item:last-child{border-bottom:none;}
+.mfi-click{cursor:pointer;transition:background .2s cubic-bezier(.4,0,.2,1);border-radius:4px;}.mfi-click:hover{background:var(--glow);}
+.mail-feed-top{display:flex;justify-content:space-between;align-items:center;gap:5px;}
+.mail-from{font-size:10px;font-weight:600;color:var(--tx-md);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mail-unread-dot{width:5px;height:5px;border-radius:50%;background:var(--tx-hi);flex-shrink:0;}
+.mail-feed-subj{font-size:11px;color:var(--tx-hi);font-weight:500;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:18px;}
+.mail-prov-icon{width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--tx-lo);background:var(--rs);border:1px solid var(--bd);flex-shrink:0;border-radius:3px;}
+.back{background:none;border:none;cursor:pointer;padding:8px 16px;display:block;width:100%;text-align:left;}
+.fb{display:flex;gap:2px;padding:8px 12px;border-bottom:1px solid var(--bd);flex-shrink:0;flex-wrap:wrap;}
+.chip{padding:4px 10px;font-size:9px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:var(--tx-lo);transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:4px;}.chip:hover,.chip.on{color:var(--tx-hi);background:var(--glow);}
+.news-tabs{display:flex;gap:3px;margin-left:auto;flex-wrap:wrap;}
+.ntab{padding:4px 10px;font-size:8px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--tx-lo);transition:all .2s cubic-bezier(.4,0,.2,1);white-space:nowrap;border-radius:4px;}.ntab:hover{color:var(--tx-hi);border-color:var(--bd-hi);background:var(--glow);}.ntab.on{background:var(--inv-bg);color:var(--inv-tx);border-color:transparent;}
+.news-item{cursor:default;}
+.hb{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--tx-hi);}
+.sb{background:none;border:none;cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 16px;gap:10px;}
+/* POMODORO HERO */
+.tmr-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--bd);min-height:0;overflow:hidden;}
+/* TASK REMOVE */
+.task-rm{background:none;border:none;cursor:pointer;padding:4px;opacity:.3;transition:all .15s;flex-shrink:0;display:flex;align-items:center;border-radius:4px;margin-left:auto;}
+.task-rm:hover{opacity:1;background:var(--glow);}
+/* CALENDAR */
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);padding:0 14px;flex-shrink:0;}
+.cal-dlbl{text-align:center;padding:4px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--tx-lo);font-weight:600;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 14px 10px;flex:1;align-content:stretch;}
+.cal-c{position:relative;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;border-radius:3px;transition:all .15s cubic-bezier(.4,0,.2,1);padding:0;}
+.cal-c:hover:not(.fu):not(:disabled){background:var(--glow);}
+.cal-c:active:not(.fu):not(:disabled){transform:scale(.88);}
+.cal-c.fu{opacity:.2;cursor:default;}
+.cal-c.td{background:var(--inv-bg);}.cal-c.td .cal-n{color:var(--inv-tx);font-weight:700;}
+.cal-c.dn:not(.td){background:rgba(255,255,255,.04);}
+.root.light .cal-c.dn:not(.td){background:rgba(0,0,0,.04);}
+.cal-c.dn{animation:pop .3s cubic-bezier(.4,0,.2,1);}
+.cal-n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--tx-lo);font-weight:500;line-height:1;z-index:1;}
+.cal-c.dn .cal-n{color:var(--tx-hi);}
+.cal-ck{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.25;}
+.cal-c.td .cal-ck{opacity:.4;}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:6px;align-content:start;}
+.sc{background:var(--rs);border:1px solid var(--bd);padding:10px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:6px;}
+.sn{font-size:20px;font-weight:800;font-family:'IBM Plex Mono',monospace;line-height:1;color:var(--tx-hi);}
+.ba{border:1px solid var(--bd);padding:7px 18px;cursor:pointer;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;transition:all .2s cubic-bezier(.4,0,.2,1);background:transparent;color:var(--tx-lo);border-radius:6px;}
+.ba.pri{background:var(--inv-bg);border-color:transparent;color:var(--inv-tx);}.ba.sec{border-color:var(--bd);}.ba:hover{filter:brightness(1.08);}.ba.sec:hover{border-color:var(--bd-hi);color:var(--tx-md);}
+.csm{padding:3px 9px;border:1px solid transparent;font-size:9px;font-weight:600;font-family:'IBM Plex Mono',monospace;background:transparent;cursor:pointer;color:var(--tx-lo);border-radius:4px;transition:all .2s cubic-bezier(.4,0,.2,1);}.csm.on{background:var(--inv-bg);border-color:transparent;color:var(--inv-tx);}.csm:hover:not(.on){color:var(--tx-md);}
+.aH{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border:none;background:transparent;cursor:pointer;width:100%;text-align:left;flex-shrink:0;gap:8px;transition:background .2s cubic-bezier(.4,0,.2,1);}.aH:hover{background:var(--glow);}.aH.open{border-bottom:1px solid var(--bd);}.aH-l{display:flex;align-items:center;gap:6px;}
+.aA{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--tx-hi);width:12px;display:inline-block;}
+.aB{flex:0 0 0;overflow:hidden;display:flex;flex-direction:column;transition:flex .3s cubic-bezier(.4,0,.2,1);}.aB.open{flex:0 1 auto;overflow:auto;}
+.ck{width:14px;height:14px;border:1.5px solid;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;border-radius:3px;transition:all .15s;}.ck.done{border-color:var(--tx-lo);background:var(--glow);color:var(--tx-md);}
+.ti{display:flex;gap:6px;padding:6px 10px;border-top:1px solid var(--bd);flex-shrink:0;}
+.inp{flex:1;background:var(--rs);border:1px solid var(--bd);padding:6px 10px;color:var(--tx-hi);font-size:11px;outline:none;font-family:inherit;min-width:0;transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:6px;}.inp:focus{border-color:var(--bd-hi);box-shadow:0 0 0 2px var(--glow);}
+.ab2{background:transparent;border:1px solid var(--bd);color:var(--tx-lo);padding:6px 10px;cursor:pointer;font-size:9px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;flex-shrink:0;transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:6px;}.ab2:hover{background:var(--inv-bg);color:var(--inv-tx);border-color:transparent;}
+.ri{width:30px;height:30px;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--rs);border-radius:6px;}
+.stxt{font-size:11px;color:var(--tx-md);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.li{padding:10px 16px;display:flex;flex-direction:column;gap:6px;background:var(--sf);border:1px solid var(--bd);height:100%;}
+.ll{display:flex;flex-direction:column;}.ln{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s;}
+.ef{display:flex;gap:8px;align-items:center;}
+.sel{flex:1;background:var(--rs);border:1px solid var(--bd);padding:7px 12px;color:var(--tx-hi);font-size:11px;font-family:'IBM Plex Mono',monospace;outline:none;min-width:0;cursor:pointer;border-radius:6px;transition:all .2s cubic-bezier(.4,0,.2,1);}.sel:focus{border-color:var(--bd-hi);box-shadow:0 0 0 2px var(--glow);}
+.eta{background:var(--rs);border:1px solid var(--bd);padding:10px 12px;color:var(--tx-hi);font-size:11px;font-family:'IBM Plex Mono',monospace;outline:none;resize:vertical;line-height:1.5;min-height:80px;border-radius:6px;transition:all .2s cubic-bezier(.4,0,.2,1);}.eta:focus{border-color:var(--bd-hi);box-shadow:0 0 0 2px var(--glow);}
+.send-btn{background:var(--inv-bg);border:1px solid transparent;color:var(--inv-tx);padding:8px 20px;cursor:pointer;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:6px;}.send-btn:hover{opacity:.85;}.send-btn:disabled{opacity:.4;cursor:default;}
+.save-tpl-btn{background:none;border:none;cursor:pointer;padding:2px 0;opacity:.6;transition:opacity .2s;}.save-tpl-btn:hover{opacity:1;}
+.save-tpl-row{display:flex;gap:4px;margin-top:4px;align-items:center;}
+.tpl-del{background:none;border:none;cursor:pointer;color:var(--tx-lo);font-size:9px;padding:2px 4px;line-height:1;transition:all .2s;border-radius:3px;}.tpl-del:hover{color:var(--tx-hi);background:var(--glow);}
+.mbg{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.6);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;animation:mdIn .2s cubic-bezier(.4,0,.2,1);}
+@keyframes mdIn{from{opacity:0;}to{opacity:1;}}
+.root.light .mbg{background:rgba(0,0,0,.25);}
+.mbox{background:var(--sf);border:1px solid var(--bd);width:100%;max-width:520px;max-height:80vh;overflow:auto;border-radius:12px;box-shadow:0 24px 48px rgba(0,0,0,.25);animation:mdBox .25s cubic-bezier(.4,0,.2,1);}
+@keyframes mdBox{from{opacity:0;transform:scale(.97) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+
+/* ═══ MICRO ANIMATIONS ═══ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:scale(1);}}
+@keyframes slideR{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:none;}}
+@keyframes slideL{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:none;}}
+@keyframes pop{0%{transform:scale(1);}40%{transform:scale(1.15);}100%{transform:scale(1);}}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-2px);}40%{transform:translateX(2px);}60%{transform:translateX(-1px);}80%{transform:translateX(1px);}}
+@keyframes check{from{stroke-dashoffset:24;}to{stroke-dashoffset:0;}}
+@keyframes strike{from{width:0;}to{width:100%;}}
+@keyframes pulse3{0%,100%{opacity:1;}50%{opacity:.5;}}
+@keyframes countPop{0%{transform:scale(1);}50%{transform:scale(1.25);}100%{transform:scale(1);}}
+@keyframes sendFly{0%{transform:translateX(0) translateY(0) scale(1);opacity:1;}100%{transform:translateX(12px) translateY(-8px) scale(.7);opacity:0;}}
+@keyframes dotPing{0%{transform:scale(1);opacity:.7;}100%{transform:scale(2.5);opacity:0;}}
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+@keyframes logSlide{from{opacity:0;transform:translateY(10px);filter:blur(2px);}to{opacity:1;transform:none;filter:blur(0);}}
+@keyframes timerDone{0%,100%{box-shadow:0 0 0 0 transparent;}50%{box-shadow:0 0 20px 4px rgba(255,255,255,.12);}}
+@keyframes breathe{0%,100%{opacity:.35;}50%{opacity:.55;}}
+
+/* Row entrance stagger */
+.lr{animation:fadeUp .3s cubic-bezier(.4,0,.2,1) both;}
+.cs>.lr:nth-child(1){animation-delay:0s;}.cs>.lr:nth-child(2){animation-delay:.03s;}.cs>.lr:nth-child(3){animation-delay:.06s;}.cs>.lr:nth-child(4){animation-delay:.09s;}.cs>.lr:nth-child(5){animation-delay:.12s;}.cs>.lr:nth-child(6){animation-delay:.15s;}.cs>.lr:nth-child(7){animation-delay:.18s;}.cs>.lr:nth-child(8){animation-delay:.21s;}.cs>.lr:nth-child(9){animation-delay:.24s;}.cs>.lr:nth-child(10){animation-delay:.27s;}
+
+/* Mail category tiles stagger */
+.mt2{animation:scaleIn .3s cubic-bezier(.4,0,.2,1) both;}
+.mg2>.mt2:nth-child(1){animation-delay:0s;}.mg2>.mt2:nth-child(2){animation-delay:.04s;}.mg2>.mt2:nth-child(3){animation-delay:.08s;}.mg2>.mt2:nth-child(4){animation-delay:.12s;}
+
+/* Mail feed items stagger */
+.mail-feed-item{animation:fadeUp .25s cubic-bezier(.4,0,.2,1) both;}
+.mail-feed>.mail-feed-item:nth-child(1){animation-delay:0s;}.mail-feed>.mail-feed-item:nth-child(2){animation-delay:.03s;}.mail-feed>.mail-feed-item:nth-child(3){animation-delay:.06s;}.mail-feed>.mail-feed-item:nth-child(4){animation-delay:.09s;}.mail-feed>.mail-feed-item:nth-child(5){animation-delay:.12s;}
+
+/* Unread dot ping animation */
+.mail-unread-dot{position:relative;}.mail-unread-dot::after{content:'';position:absolute;inset:0;border-radius:50%;background:inherit;animation:dotPing 2s cubic-bezier(0,0,.2,1) infinite;}
+
+/* Task checkbox animation */
+.ck{transition:all .25s cubic-bezier(.4,0,.2,1);}.ck:active{transform:scale(.85);}.ck.done{animation:pop .3s cubic-bezier(.4,0,.2,1);}
+.ck.done svg{animation:check .3s cubic-bezier(.4,0,.2,1) both;}
+
+/* Star save bounce */
+.sb{transition:transform .2s cubic-bezier(.4,0,.2,1);}.sb:active{transform:scale(.8);}.sb svg{transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.star-pop svg{animation:pop .35s cubic-bezier(.4,0,.2,1);}
+
+/* Tag count pop */
+.tag{transition:all .2s cubic-bezier(.4,0,.2,1);}
+.tag-pop{animation:countPop .3s cubic-bezier(.4,0,.2,1);}
+
+/* Send button fly */
+.send-fly{animation:sendFly .5s cubic-bezier(.4,0,.2,1) forwards;}
+
+/* Timer completion flash */
+.timer-done{animation:timerDone .8s ease 2;}
+
+/* Log line entrance */
+.ln{animation:logSlide .35s cubic-bezier(.4,0,.2,1) both;}
+
+/* News tab content fade */
+.news-fade{animation:fadeUp .3s cubic-bezier(.4,0,.2,1) both;}
+
+/* Chip active transition */
+.chip{transition:all .2s cubic-bezier(.4,0,.2,1);}.chip:active{transform:scale(.94);}
+.ntab{transition:all .2s cubic-bezier(.4,0,.2,1);}.ntab:active{transform:scale(.95);}
+
+/* Button press */
+.ba{transition:all .2s cubic-bezier(.4,0,.2,1);}.ba:active{transform:scale(.95);}
+.send-btn{transition:all .2s cubic-bezier(.4,0,.2,1);}.send-btn:active:not(:disabled){transform:scale(.96);}
+.send-btn.sending{animation:pulse3 .8s ease infinite;background:linear-gradient(90deg,var(--inv-bg) 40%,var(--bd-hi) 50%,var(--inv-bg) 60%);background-size:200% 100%;animation:shimmer 1.5s ease infinite;}
+.ab2{transition:all .2s cubic-bezier(.4,0,.2,1);}.ab2:active{transform:scale(.95);}
+.hub-btn:active,.lt-btn:active{transform:scale(.94);}
+
+/* Settings toggle smooth */
+.set-toggle:active{transform:scale(.9);}
+
+/* Profile photo hover breathe */
+.pfp{transition:all .25s cubic-bezier(.4,0,.2,1);}.pfp:hover{transform:scale(1.03);}
+
+/* Stats cards entrance */
+.sc{animation:scaleIn .3s cubic-bezier(.4,0,.2,1) both;}
+.sg>.sc:nth-child(1){animation-delay:0s;}.sg>.sc:nth-child(2){animation-delay:.05s;}.sg>.sc:nth-child(3){animation-delay:.1s;}.sg>.sc:nth-child(4){animation-delay:.15s;}
+
+/* Stat number shimmer on hover */
+.sn{transition:color .2s;}
+.sc:hover .sn{color:var(--tx-hi);}
+
+/* Settings section entrance */
+.set-section{animation:fadeUp .25s cubic-bezier(.4,0,.2,1);}
+.set-field{animation:fadeUp .3s cubic-bezier(.4,0,.2,1) both;}
+.set-section>.set-field:nth-child(1){animation-delay:0s;}.set-section>.set-field:nth-child(2){animation-delay:.04s;}.set-section>.set-field:nth-child(3){animation-delay:.08s;}.set-section>.set-field:nth-child(4){animation-delay:.12s;}.set-section>.set-field:nth-child(5){animation-delay:.16s;}.set-section>.set-field:nth-child(6){animation-delay:.2s;}
+
+/* Layout preset button hover lift */
+.set-layout-btn{transition:all .2s cubic-bezier(.4,0,.2,1);}.set-layout-btn:hover{transform:translateY(-2px);}.set-layout-btn:active{transform:translateY(0) scale(.97);}
+
+/* Accordion icon rotate */
+.aA{transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;}
+
+/* News icon shimmer */
+.ri{transition:all .2s cubic-bezier(.4,0,.2,1);}.lr:hover .ri{transform:scale(1.08);border-color:var(--bd-hi);}
+
+/* Social lead card hover */
+.stxt{transition:color .2s;}.lr:hover .stxt{color:var(--tx-md);}
+
+/* Music widget hover */
+.mw{transition:all .25s cubic-bezier(.4,0,.2,1);}.mw:hover{border-color:rgba(255,255,255,.12);}
+.root.light .mw:hover{border-color:rgba(0,0,0,.1);}
+
+/* Hero text entrance */
+.hero-t{animation:fadeUp .6s cubic-bezier(.4,0,.2,1) .1s both;}
+.hero-d{animation:fadeUp .6s cubic-bezier(.4,0,.2,1) .2s both;}
+.hero-name{animation:fadeUp .6s cubic-bezier(.4,0,.2,1) .3s both;}
+
+/* Hover all → link */
+.cf Mo[style*="cursor"]:hover{text-decoration:underline;text-underline-offset:2px;}
+.mbox-lg{max-width:580px;}
+.set-tabs{display:flex;gap:3px;padding:0 20px 12px;border-bottom:1px solid var(--bd);}
+.set-section{display:flex;flex-direction:column;gap:16px;}
+.set-field{display:flex;flex-direction:column;gap:6px;}
+.set-inp{padding:7px 12px !important;font-size:12px !important;background:var(--rs) !important;border-color:var(--bd) !important;}
+.set-inp:focus{border-color:var(--bd-hi) !important;outline:none;}
+.set-layouts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.set-layout-btn{background:var(--rs);border:1px solid var(--bd);padding:10px 8px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:8px;}.set-layout-btn:hover{border-color:var(--bd-hi);}.set-layout-btn.on{border-color:var(--tx-hi);background:var(--glow);}
+.set-layout-preview{width:100%;display:flex;flex-direction:column;gap:2px;padding:0 4px;}
+.set-toggle{width:32px;height:18px;border-radius:9px;border:1px solid var(--bd);background:var(--rs);cursor:pointer;position:relative;transition:all .25s cubic-bezier(.4,0,.2,1);padding:0;flex-shrink:0;}
+.set-toggle.on{background:var(--tx-hi);border-color:transparent;}
+.set-toggle-dot{width:12px;height:12px;border-radius:50%;background:var(--tx-lo);position:absolute;top:2px;left:2px;transition:all .25s cubic-bezier(.4,0,.2,1);}
+.set-toggle.on .set-toggle-dot{left:16px;background:var(--sf);}
+.set-cards-list{border:1px solid var(--bd);padding:4px 12px;border-radius:8px;}
+.mhd{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bd);}.mx{background:none;border:none;color:var(--tx-lo);cursor:pointer;padding:4px;border-radius:6px;transition:all .15s;display:flex;align-items:center;justify-content:center;}.mx:hover{color:var(--tx-hi);background:var(--glow);}
+.mbd{padding:20px;display:flex;flex-direction:column;gap:20px;}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd);gap:8px;}.sr:last-child{border-bottom:none;}.sr-l{display:flex;align-items:center;gap:8px;min-width:0;}
+.set-prov-icon{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--tx-md);border:1.5px solid var(--bd);flex-shrink:0;border-radius:5px;}.set-prov-icon.sm{width:18px;height:18px;font-size:9px;border-radius:4px;}
+.set-add-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px;gap:8px;}
+.set-add-btn{display:flex;align-items:center;gap:4px;background:var(--rs);border:1px solid var(--bd);padding:5px 10px;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:6px;}.set-add-btn:hover{border-color:var(--bd-hi);}
+.set-add-form{padding:12px;background:var(--rs);border:1px solid var(--bd);margin-top:8px;border-radius:8px;}
+    `}</style>
+  </div>);
+}
+
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
