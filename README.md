@@ -1,102 +1,150 @@
 # Daily Digest
 
-> Linear-inspired, dark-first productivity dashboard.
+A dark-first, Linear-inspired productivity dashboard built as a single-page application. Designed for job seekers, freelancers, and professionals who want a unified command center for their daily workflow.
 
-![Daily Digest](https://img.shields.io/badge/version-1.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![React](https://img.shields.io/badge/React-18-61dafb)
+![Daily Digest](https://img.shields.io/badge/version-1.0.0-black) ![License](https://img.shields.io/badge/license-MIT-blue) ![Deploy](https://img.shields.io/badge/deploy-GitHub%20Pages-green)
 
 ## Overview
 
-Daily Digest is a bento-grid productivity dashboard with a monospace-driven, dark-first aesthetic inspired by Linear. It features a 12-column responsive grid, 8 card components, 34 custom SVG icons, 23 keyframe animations, a real-time dither canvas background, and full dark/light mode theming via CSS custom properties.
+Daily Digest consolidates mail, job listings, tasks, news, calendar, networking leads, and cold email drafting into a single bento-grid dashboard with a **Quiet Mode** for focused work.
 
-## Live Demo
+### Key Features
 
-**[→ View Live](https://yourusername.github.io/daily-digest/)**
+- **Bento Grid Layout** — 12-column responsive grid with 8 card modules
+- **Quiet Mode** — Mask-reveal transition to a minimal focus view with customizable widgets
+- **Dark/Light Themes** — Full theming via CSS custom properties
+- **Interactive ASCII Canvas** — Dithered particle background with mouse trail
+- **Google X-Ray ATS Search** — Cross-board job search across 6 platforms
+- **Pomodoro Timer** — Integrated focus timer with break cycles
+- **Cold Email Composer** — Template-based outreach with multiple sender accounts
+- **FL Studio DAW Buttons** — Beveled hardware-style toggle controls
+- **Fully Responsive** — Optimized for desktop, tablet, and mobile with touch targets
 
-## Features
+### Modules
 
-- **Bento Grid Layout** — 12-column CSS grid with 4 switchable presets (Default, Mail Focus, Compact, Intel Focus)
-- **8 Card Components** — Mail, Jobs, Todo/Pomodoro, News, Leads, Calendar, Cold Email, Activity Log
-- **Dark/Light Mode** — Full theme inversion via CSS custom properties, toggle in hero bar
-- **Dither Canvas** — Animated ordered-dither background using a Bayer 4×4 threshold matrix
-- **Mouse Trail** — Particle system with per-pixel dithering that follows cursor movement
-- **Pomodoro Timer** — 96px SVG ring timer with configurable durations (25/30/35/40m)
-- **Streak Calendar** — Monthly tap-to-toggle calendar with streak tracking
-- **Music Widget** — Frosted glass widget with ASCII album art and animated equalizer bars
-- **Profile Photo** — Upload with client-side 1-bit dithering effect
-- **34 SVG Icons** — Stroke-based icon system at 24×24 viewBox
-- **23 Animations** — Entrance, interaction, and continuous keyframes with consistent easing
-- **Settings Modal** — Profile, layout presets, and connection management
-- **Responsive** — 6 breakpoints from full desktop (>1399px) down to mobile (≤639px)
+| Card | Description |
+|------|-------------|
+| **Mail** | Multi-provider inbox (Gmail, Outlook, iCloud) with smart sort |
+| **Jobs** | ATS board aggregator with keyword search and X-Ray |
+| **Focus · Tasks** | Pomodoro timer + task list with priority levels |
+| **News Radar** | Curated feeds: Design AI, Deep Tech, Sport, World |
+| **Leads** | Social media opportunity tracker (X, LinkedIn, Contra) |
+| **Calendar** | Monthly view with event indicators |
+| **Cold Email** | Template composer with account selector |
+| **Activity Log** | Real-time system event stream |
 
 ## Quick Start
 
-### Option 1: Just open it
+### Option 1: Open directly
 
-Download `index.html` and open it in any browser. That's it — no build step, no dependencies, no install.
+Just open `public/index.html` in any modern browser. No build step required.
 
-### Option 2: GitHub Pages
+### Option 2: Local server
 
-1. Fork this repository
-2. Go to **Settings → Pages**
-3. Set source to **Deploy from a branch** → `main` / `root`
-4. Your site will be live at `https://yourusername.github.io/daily-digest/`
+```bash
+# Using Python
+python3 -m http.server 8080 --directory public
 
-### Option 3: Any static host
+# Using Node
+npx serve public
 
-Upload `index.html` to Vercel, Netlify, Cloudflare Pages, or any static hosting. Single file, zero config.
+# Using PHP
+php -S localhost:8080 -t public
+```
 
-## Tech Stack
+### Option 3: GitHub Pages
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | React 18 (CDN) |
-| JSX Transform | Babel Standalone (CDN) |
-| Typography | IBM Plex Mono + DM Sans (Google Fonts) |
-| Styling | CSS Custom Properties, inline `<style>` block |
-| Icons | 34 inline SVGs, stroke-based |
-| Canvas | 2D context for dither + particle effects |
-| Build | None — single HTML file |
+Push to GitHub and enable Pages from Settings → Pages → Source: `main` branch, `/public` folder. Or use the included workflow:
 
-## Design System
-
-The complete design system documentation is available in [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md), covering:
-
-- Color tokens (dark + light)
-- Typography scale & `Mo` component
-- Spacing system (2px base grid)
-- Border & radius scale
-- Grid system & layout presets
-- All 34 icon SVG paths
-- 23 animation keyframes
-- Component specifications
-- Canvas rendering algorithms (dither, trail, photo processing)
-- Visual effects (card glow, bento spotlight)
+```bash
+git push origin main
+# GitHub Actions will deploy automatically
+```
 
 ## Project Structure
 
 ```
 daily-digest/
-├── index.html           # Complete app — single file, zero dependencies
-├── DESIGN_SYSTEM.md     # Full design system documentation (1,258 lines)
-├── README.md            # This file
-└── LICENSE              # MIT License
+├── public/
+│   └── index.html          # Complete single-file application
+├── src/
+│   └── daily-digest.jsx    # React source (reference)
+├── docs/
+│   ├── PRODUCT_SPEC.md     # Full product specification
+│   ├── DESIGN_SYSTEM.md    # Design tokens, typography, spacing
+│   ├── DESIGN_SYSTEM_PROMPT.md  # AI prompt for design consistency
+│   ├── BACKEND_ARCHITECTURE.md  # API integration architecture
+│   └── TODO_PROTOTYPE_TO_LIVE.md # Roadmap: prototype → production
+├── .github/
+│   └── workflows/
+│       └── deploy.yml      # GitHub Pages deployment
+├── package.json
+├── LICENSE
+└── README.md
 ```
+
+## Tech Stack
+
+- **React 18** — via CDN (no build tooling required)
+- **Babel Standalone** — JSX transform in-browser
+- **IBM Plex Mono** — Primary monospace typeface
+- **DM Sans** — Secondary sans-serif
+- **CSS Custom Properties** — Full dark/light theming
+- **Canvas API** — ASCII dither background + mouse trail
+- **Pointer Events API** — Unified mouse/touch interactions
+
+## Configuration
+
+Open the **HUB** (settings) from the top-right controls:
+
+### Profile
+- Display name, title, timezone
+- Hero text customization
+- Primary email account
+
+### Layout
+- Grid preset selection (Default, Mail Focus, Compact, Intel Focus)
+- Card visibility toggles
+- Row height customization
+- **Quiet Mode widget selection** — Choose which cards appear in quiet mode (1-4 widgets from Calendar, Mail, Focus, Jobs, News, Leads)
+
+### Connections
+- Add/remove mail accounts (Gmail, Outlook, iCloud)
+
+## Quiet Mode
+
+Press the **QUIET** button to enter focus mode. The transition uses a CSS `clip-path` mask reveal — the ASCII background expands from the hero area to fill the viewport while the main dashboard fades out.
+
+Quiet mode displays:
+- Customizable widget cards (configurable in Settings → Layout)
+- Digital clock
+- Large hero typography
+- Profile photo + music widget
 
 ## Browser Support
 
-| Browser | Supported |
-|---------|-----------|
-| Chrome 90+ | ✅ |
-| Firefox 90+ | ✅ |
-| Safari 15+ | ✅ |
-| Edge 90+ | ✅ |
+- Chrome/Edge 88+
+- Firefox 78+
+- Safari 15+
+- Mobile Safari / Chrome for Android
 
-Requires: CSS Custom Properties, CSS Grid, Canvas 2D, `backdrop-filter`, `clamp()`.
+## API Integration
+
+The Jobs card supports live search via the Anthropic API with `web_search` tool. See `docs/BACKEND_ARCHITECTURE.md` for integration details. When the API is unavailable, the dashboard falls back to local generated data.
+
+## Roadmap
+
+See `docs/TODO_PROTOTYPE_TO_LIVE.md` for the full prototype-to-production roadmap including:
+- OAuth mail integration
+- Real calendar API sync
+- Persistent storage
+- Push notifications
+- PWA support
 
 ## License
 
-MIT — see [LICENSE](./LICENSE) for details.
+MIT — see [LICENSE](LICENSE)
 
----
+## Author
 
-*Built by Layout Studio*
+**Adewale Aloba** — Principal Designer
