@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #root { width: 100%; min-height: 100vh; }
@@ -239,6 +240,88 @@ const TEMPLATES=[{name:"Job Application",body:"Hi [Name],\n\nI came across the [
 const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 const dateLabel=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}).toUpperCase();
 
+// ═══ RELATIVE TIME ═══
+function relT(d){const s=(Date.now()-new Date(d))/1e3;if(s<3600)return`${Math.max(1,Math.round(s/60))}m`;if(s<86400)return`${Math.round(s/3600)}h`;return`${Math.round(s/86400)}d`;}
+
+// ═══ LOCALSTORAGE HOOK ═══
+function useLS(key,def){
+  const[v,sv]=useState(()=>{try{const s=localStorage.getItem(key);if(!s)return def;const p=JSON.parse(s);return(p&&typeof p==='object'&&!Array.isArray(p)&&def&&typeof def==='object'&&!Array.isArray(def))?{...def,...p}:p;}catch{return def;}});
+  useEffect(()=>{try{localStorage.setItem(key,JSON.stringify(v));}catch{};},[key,v]);
+  return[v,sv];
+}
+
+// ═══ LIVE RSS NEWS ═══
+const RSS_FEEDS={
+  design:['https://www.creativebloq.com/feed','https://uxdesign.cc/feed'],
+  deeptech:['https://www.technologyreview.com/feed/','https://arstechnica.com/feed/'],
+  sport:['https://feeds.bbci.co.uk/sport/rss.xml','https://www.skysports.com/rss/12040'],
+  world:['https://feeds.reuters.com/reuters/topNews','https://rss.nytimes.com/services/xml/rss/nyt/World.xml'],
+};
+const _newsCache={};
+async function fetchRSS(cat){
+  if(_newsCache[cat]&&Date.now()-_newsCache[cat].ts<900000)return _newsCache[cat].items;
+  const urls=RSS_FEEDS[cat]||[];const out=[];
+  for(const url of urls){
+    try{
+      const r=await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=6`,{signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
+      const d=await r.json();
+      if(d.status!=='ok')continue;
+      for(const i of(d.items||[])){
+        if(!i.title)continue;
+        out.push({title:i.title.replace(/\s+/g,' ').trim(),src:url.replace(/https?:\/\/(www\.)?/,'').split('/')[0],t:relT(i.pubDate),hot:false,url:i.link});
+      }
+    }catch{}
+  }
+  const items=out.slice(0,8);
+  if(items.length)_newsCache[cat]={items,ts:Date.now()};
+  return items;
+}
+
+// ═══ LIVE ATS JOB BOARDS ═══
+const GH_SLUGS=['coinbase','figma','stripe','notion','vercel','anthropic','canva','robinhood','dropbox','pinterest','ramp','brex'];
+const LEVER_SLUGS=['alchemy','rainbow-me','opensea'];
+function jTag(t=''){const l=t.toLowerCase();if(l.includes('principal')||l.includes('director'))return'Director';if(l.includes('lead'))return'Lead';if(l.includes('senior')||l.includes('sr.'))return'Senior';if(l.includes('junior'))return'Junior';return'Mid-Senior';}
+async function fetchATSJobs(keywords){
+  const kw=keywords.map(k=>k.toLowerCase());
+  const ok=t=>kw.some(k=>k.split(' ').some(w=>w.length>3&&t.toLowerCase().includes(w)));
+  const ch=['high','high','medium','medium','low'];
+  const[ghRes,lvRes]=await Promise.all([
+    Promise.allSettled(GH_SLUGS.map(s=>
+      fetch(`https://boards-api.greenhouse.io/v1/boards/${s}/jobs`)
+        .then(r=>r.json())
+        .then(d=>(d.jobs||[]).filter(j=>ok(j.title||'')).map(j=>({
+          id:'gh-'+j.id,title:j.title,
+          co:s.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+          loc:(j.location?.name||'Remote'),url:j.absolute_url||'#',
+          board:'greenhouse',boardName:'Greenhouse',boardIcon:'G',
+          age:relT(j.updated_at||new Date()),salary:'—',
+          match:Math.min(98,70+Math.floor(Math.random()*20)),
+          tags:[jTag(j.title)],chance:ch[Math.floor(Math.random()*ch.length)],hot:false,
+        })))
+        .catch(()=>[])
+    )),
+    Promise.allSettled(LEVER_SLUGS.map(s=>
+      fetch(`https://api.lever.co/v0/postings/${s}?mode=json`)
+        .then(r=>r.json())
+        .then(d=>(Array.isArray(d)?d:[]).filter(j=>ok(j.text||'')).map(j=>({
+          id:'lv-'+j.id,title:j.text,
+          co:s.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+          loc:(j.categories?.location||'Remote'),url:j.hostedUrl||'#',
+          board:'lever',boardName:'Lever',boardIcon:'L',
+          age:relT(new Date(j.createdAt)),salary:'—',
+          match:Math.min(98,68+Math.floor(Math.random()*22)),
+          tags:[jTag(j.text)],chance:ch[Math.floor(Math.random()*ch.length)],hot:false,
+        })))
+        .catch(()=>[])
+    )),
+  ]);
+  const out=[];
+  for(const r of[...ghRes,...lvRes])if(r.status==='fulfilled')out.push(...r.value);
+  out.sort((a,b)=>b.match-a.match);
+  out.slice(0,3).forEach(j=>j.hot=true);
+  return out;
+}
+
 const Mo=({children,s=10,c=P.dim,w=600,ls="0.08em",st={}})=>(<span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:s,color:c,fontWeight:w,letterSpacing:ls,lineHeight:1.3,...st}}>{children}</span>);
 const Tag=({children,inv,style={}})=>(<span className={`tag ${inv?"inv":""}`} style={style}>{children}</span>);
 const Dot=({color=P.white,size=6,pulse})=>(<span className={pulse?"dot pulse":"dot"} style={{width:size,height:size,background:color}}/>);
@@ -454,29 +537,45 @@ function MailCard(){
 // ═══ NEWS ═══
 function NewsCard(){
   const [tab,setTab]=useState("design");
+  const [live,setLive]=useState({});
+  const [loading,setLoading]=useState(false);
   const tabs=[{k:"design",l:"DESIGN AI",ic:"design"},{k:"deeptech",l:"DEEP TECH",ic:"zap"},{k:"sport",l:"SPORT",ic:"sport"},{k:"world",l:"WORLD",ic:"globe"}];
-  const items=NEWS[tab]||[];
+
+  useEffect(()=>{
+    if(live[tab]!==undefined)return;
+    setLoading(true);
+    fetchRSS(tab).then(items=>{
+      setLive(p=>({...p,[tab]:items.length?items:null}));
+      setLoading(false);
+    });
+  },[tab]);
+
+  const items=live[tab]||NEWS[tab]||[];
+  const isLive=live[tab]&&live[tab].length>0;
   const cur=tabs.find(t=>t.k===tab);
   return(<Card area="news">
     <div className="ch" style={{gap:6}}>
       <div style={{display:"flex",alignItems:"center",gap:6}}>{Ic.news({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">NEWS RADAR</Mo></div>
       <div className="news-tabs">{tabs.map(t=>(<button key={t.k} onClick={()=>setTab(t.k)} className={`ntab ${tab===t.k?"on":""}`}>{t.l}</button>))}</div>
     </div>
-    <div className="cs">{items.map((t,i)=>(<div key={tab+i} className="lr news-item" style={{gap:10,alignItems:"flex-start"}}>
-      <div className="ri">{Ic[cur.ic]({s:13,c:"var(--tx-hi)"})}</div>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:"var(--tx-hi)",lineHeight:1.35}}>{t.title}</span>{t.hot&&<Tag inv>HOT</Tag>}</div>
-        <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap"}}><Mo s={9} c="var(--tx-md)">{t.src}</Mo><Mo s={8} c="var(--tx-lo)">{t.t}</Mo></div>
-      </div>
-    </div>))}</div>
-    <div className="cf" style={{justifyContent:"flex-end"}}><Mo s={9} c="var(--tx-hi)" st={{cursor:"pointer"}}>FULL ROUNDUP →</Mo></div>
+    <div className="cs">
+      {loading&&!items.length&&<div style={{padding:"20px 16px",textAlign:"center"}}><Mo s={9} c="var(--tx-lo)">FETCHING FEEDS…</Mo></div>}
+      {items.map((t,i)=>(<div key={tab+i} className="lr news-item" style={{gap:10,alignItems:"flex-start",cursor:t.url?"pointer":"default"}} onClick={()=>t.url&&window.open(t.url,'_blank')}>
+        <div className="ri">{Ic[cur.ic]({s:13,c:"var(--tx-hi)"})}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:"var(--tx-hi)",lineHeight:1.35}}>{t.title}</span>{t.hot&&<Tag inv>HOT</Tag>}</div>
+          <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap"}}><Mo s={9} c="var(--tx-md)">{t.src}</Mo><Mo s={8} c="var(--tx-lo)">{t.t}</Mo></div>
+        </div>
+      </div>))}
+    </div>
+    <div className="cf"><Mo s={8} c={isLive?"#4ade80":"var(--tx-lo)"}>{loading?"LOADING…":isLive?"● LIVE":"○ CACHED"}</Mo><Mo s={9} c="var(--tx-hi)" st={{cursor:"pointer"}}>FULL ROUNDUP →</Mo></div>
   </Card>);
 }
 
 // ═══ COLD EMAIL ═══
 function ColdEmailCard(){
   const [ti,setTi]=useState(0);const [body,setBody]=useState(TEMPLATES[0].body);const [to,setTo]=useState("");const [from,setFrom]=useState(EMAILS[0]);const [subj,setSubj]=useState("");const [sent,setSent]=useState([]);const [sending,setSending]=useState(false);
-  const [custom,setCustom]=useState([]);const [saving,setSaving]=useState(false);const [saveName,setSaveName]=useState("");
+  const [custom,setCustom]=useLS('dd_templates',[]);const [saving,setSaving]=useState(false);const [saveName,setSaveName]=useState("");
   const allTpls=[...TEMPLATES,...custom];
   const pick=i=>{setTi(i);setBody(allTpls[i].body);setSubj(allTpls[i].subj||"");};
   const saveCustom=()=>{if(!saveName.trim()||!body.trim())return;setCustom(p=>[...p,{name:saveName.trim(),body,subj}]);setSaving(false);setSaveName("");setTi(allTpls.length);};
@@ -499,7 +598,10 @@ function ColdEmailCard(){
 }
 
 function JobsCard(){
-  const [fl,setFl]=useState("all");const [sv,setSv]=useState(new Set());
+  const [fl,setFl]=useState("all");
+  const [svArr,setSvArr]=useLS('dd_saved_jobs',[]);
+  const sv=new Set(svArr);
+  const setSv=s=>setSvArr([...s]);
   const [keywords,setKeywords]=useState(DEFAULT_KEYWORDS);
   const [kwInput,setKwInput]=useState("");
   const [editingKw,setEditingKw]=useState(false);
@@ -514,8 +616,13 @@ function JobsCard(){
   useEffect(()=>{if(!scanRef.current){scanRef.current=true;doScan(keywords);}},[]);
   const doScan=async(kw)=>{
     setScanning(true);
+    // Tier 1: Live ATS board public APIs (no key, CORS-safe)
+    const ats=await fetchATSJobs(kw);
+    if(ats.length>=3){setJobs(ats);setSource("live");setLastScan(new Date());setScanning(false);return;}
+    // Tier 2: Anthropic web_search
     const real=await fetchRealJobs(kw);
-    if(real&&real.length>0){setJobs(real);setSource("live");}
+    if(real&&real.length>0){setJobs([...ats,...real].slice(0,20));setSource("live");}
+    else if(ats.length>0){setJobs(ats);setSource("live");}
     else{setJobs(generateFallbackJobs(kw));setSource("local");}
     setLastScan(new Date());setScanning(false);
   };
@@ -603,7 +710,7 @@ function JobsCard(){
 // Timer merged into TodoStatsCard below
 
 function TodoStatsCard(){
-  const [todos,setTodos]=useState(INIT_TODOS);const [inp,setInp]=useState("");const [active,setActive]=useState("tasks");
+  const [todos,setTodos]=useLS('dd_todos',INIT_TODOS);const [inp,setInp]=useState("");const [active,setActive]=useState("tasks");
   const toggle=id=>setTodos(t=>t.map(x=>x.id===id?{...x,done:!x.done}:x));
   const remove=id=>setTodos(t=>t.filter(x=>x.id!==id));
   const add=()=>{if(!inp.trim())return;setTodos(t=>[...t,{id:Date.now(),text:inp.trim(),done:false,pri:"normal"}]);setInp("");};
@@ -657,7 +764,7 @@ function CalendarCard(){
 
 function SocialCard(){return(<Card area="social"><Head left={<>{Ic.social({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">LEADS</Mo></>} right={<Tag inv>{SOCIAL.filter(s=>s.q==="high").length} HIGH</Tag>}/><div className="cs">{SOCIAL.map((s,i)=>(<div key={i} className="lr" style={{flexDirection:"column",gap:4,alignItems:"stretch"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:6}}><div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,overflow:"hidden"}}><Tag>{s.plat}</Tag><span style={{fontSize:11,fontWeight:600,color:"var(--tx-md)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.author}</span></div><div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Dot color={s.q==="high"?"var(--tx-hi)":"var(--tx-lo)"} size={5}/><Mo s={9} c="var(--tx-lo)">{s.t}</Mo></div></div><div className="stxt">{s.txt}</div></div>))}</div><div className="cf" style={{justifyContent:"flex-end"}}><Mo s={9} c="var(--tx-hi)" st={{cursor:"pointer"}}>ALL →</Mo></div></Card>);}
 
-function LogBar(){const [logs,setLogs]=useState(LOGS.slice(0,3));const idx=useRef(3);useEffect(()=>{const i=setInterval(()=>{setLogs(p=>{const n=[...p,LOGS[idx.current%LOGS.length]];idx.current++;return n.slice(-4);});},2800);return()=>clearInterval(i);},[]);return(<div className="card" style={{gridArea:"log"}}><div className="ci li"><div style={{display:"flex",alignItems:"center",gap:5}}>{Ic.log({s:11,c:"var(--tx-lo)"})}<Mo s={9} c="var(--tx-lo)" ls="0.1em" w={700}>LOG</Mo></div><div className="ll">{logs.map((l,i)=>(<div key={i+l} className="ln" style={{color:i===logs.length-1?"var(--tx-hi)":"var(--tx-lo)"}}><span style={{color:"var(--tx-lo)",marginRight:8}}>{`07:0${1+i}:${String(10+i*4).padStart(2,"0")}`}</span>{l}</div>))}</div></div></div>);}
+function LogBar(){const [logs,setLogs]=useState(LOGS.slice(0,3));const idx=useRef(3);useEffect(()=>{const i=setInterval(()=>{setLogs(p=>{const n=[...p,LOGS[idx.current%LOGS.length]];idx.current++;return n.slice(-4);});},2800);return()=>clearInterval(i);},[]);return(<div className="card" style={{gridArea:"log"}}><div className="ci li"><div style={{display:"flex",alignItems:"center",gap:5}}>{Ic.log({s:11,c:"var(--tx-lo)"})}<Mo s={9} c="var(--tx-lo)" ls="0.1em" w={700}>LOG</Mo></div><div className="ll">{logs.map((l,i)=>(<div key={i+l} className="ln" style={{color:i===logs.length-1?"var(--tx-hi)":"var(--tx-lo)"}}><span style={{color:"var(--tx-lo)",marginRight:8}}>{(()=>{const t=new Date(Date.now()-(logs.length-1-i)*2800);return`${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;})()}</span>{l}</div>))}</div></div></div>);}
 
 function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
   const [tab,setTab]=useState("profile");const [adding,setAdding]=useState(null);const [addEmail,setAddEmail]=useState("");
@@ -673,7 +780,7 @@ function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
     default:{name:"Default",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
     mailFirst:{name:"Mail Focus",areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 340px 360px 48px"},
     compact:{name:"Compact",areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"320px 340px 340px 48px"},
-    newsHeavy:{name:"Intel Focus",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
+    newsHeavy:{name:"Intel Focus",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news news news social social social calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 380px 340px 48px"},
   };
   const cards=[{k:"mail",l:"Mail"},{k:"jobs",l:"Jobs"},{k:"todo",l:"Focus · Tasks · Stats"},{k:"news",l:"News Radar"},{k:"social",l:"Leads"},{k:"calendar",l:"Calendar"},{k:"email",l:"Cold Email"},{k:"log",l:"Activity Log"}];
 
@@ -721,7 +828,7 @@ function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
       {tab==="layout"&&<div className="set-section">
         <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700} st={{marginBottom:8}}>GRID PRESET</Mo>
         <div className="set-layouts">{Object.entries(LAYOUTS).map(([k,v])=>(
-          <button key={k} onClick={()=>upd("layout",k)} className={`set-layout-btn ${config.layout===k?"on":""}`}>
+          <button key={k} onClick={()=>{upd("layout",k);const rh=v.rows.split(/\s+/).filter(r=>r.endsWith("px")).slice(0,3).map(r=>parseInt(r));upd("rowHeights",rh);}} className={`set-layout-btn ${config.layout===k?"on":""}`}>
             <div className="set-layout-preview">{v.areas.split('"').filter(s=>s.trim()).slice(0,4).map((row,i)=>{
               const cells=[...new Set(row.trim().split(/\s+/))];
               return <div key={i} style={{display:"flex",gap:1,height:cells.length>4?6:8}}>{cells.map((c,j)=><div key={j} style={{flex:1,background:c==="log"?"var(--bd)":"var(--tx-lo)",opacity:0.3,minWidth:4}}/>)}</div>;
@@ -752,7 +859,7 @@ function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
         <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--bd)"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
             <Mo s={10} c="var(--tx-hi)" w={700} ls="0.12em">QUIET MODE</Mo>
-            <Tag>3 WIDGETS</Tag>
+            <Tag>{(config.quietWidgets||["calendar","mail","todo"]).length} WIDGETS</Tag>
           </div>
 
           <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700} st={{marginBottom:8}}>WIDGET SLOTS</Mo>
@@ -898,7 +1005,8 @@ function DigitalClock(){
 function QuietLayout({light,config,setLight,quiet,setQuiet,onSettings,phase}){
   const ref=useRef(null);const [pulse,setPulse]=useState(true);
   useEffect(()=>{const i=setInterval(()=>setPulse(p=>!p),1400);return()=>clearInterval(i);},[]);
-  const WIDGET_MAP={calendar:CalendarCard,mail:MailCard,todo:TodoStatsCard,jobs:JobsCard,news:NewsCard,social:SocialCard};
+  const QW_DEDICATED={calendar:QwCal,todo:QwPomo,jobs:QwJobs};
+  const QW_WRAPPED={mail:MailCard,news:NewsCard,social:SocialCard};
   const widgets=config.quietWidgets||["calendar","mail","todo"];
   const show=phase==="revealing"||phase==="quiet";
   return(<div className="quiet-root" ref={ref}>
@@ -912,8 +1020,10 @@ function QuietLayout({light,config,setLight,quiet,setQuiet,onSettings,phase}){
       </div>
     </div>
     <div className={`quiet-widgets ${show?"show":""}`} style={{gridTemplateColumns:`repeat(${widgets.length},1fr)`}}>
-      {widgets.map(id=>{const Comp=WIDGET_MAP[id];if(!Comp)return null;
-        return(<div key={id} className="qw"><Comp/></div>);
+      {widgets.map(id=>{
+        if(QW_DEDICATED[id]){const Comp=QW_DEDICATED[id];return<Comp key={id}/>;}
+        if(QW_WRAPPED[id]){const Comp=QW_WRAPPED[id];return<div key={id} className="qw"><Comp/></div>;}
+        return null;
       })}
     </div>
     <div className={`quiet-brand ${show?"show":""}`}><DigitalClock/><h1 className="quiet-title">{config?.heroLine1||"DAILY"}<br/>{config?.heroLine2||"DIGEST"}</h1><div className="quiet-date">{dateLabel}</div><div className="quiet-name">{config?.name||"ADEWALE ALOBA"}</div></div>
@@ -923,7 +1033,8 @@ function QuietLayout({light,config,setLight,quiet,setQuiet,onSettings,phase}){
 
 
 function App(){
-  const [settings,setSettings]=useState(false);const [bh,setBh]=useState(false);const [light,setLight]=useState(false);
+  const [settings,setSettings]=useState(false);const [bh,setBh]=useState(false);
+  const [light,setLight]=useLS('dd_light',false);
   const [quiet,setQuiet]=useState(false);const [phase,setPhase]=useState("normal");
   const maskRef=useRef(null);
   const toggleQuiet=(val)=>{
@@ -950,7 +1061,7 @@ function App(){
     {id:2,email:"wale@layoutstudio.co",prov:"google",status:"ok"},
     {id:3,email:"wale@021labs.com",prov:"outlook",status:"ok"},
   ]);
-  const [config,setConfig]=useState({
+  const [config,setConfig]=useLS('dd_config',{
     name:"ADEWALE ALOBA",title:"Principal Designer",tz:"WAT",heroLine1:"DAILY",heroLine2:"DIGEST",
     primaryEmail:"adewale@gmail.com",syncInterval:60,layout:"default",hiddenCards:[],rowHeights:[380,340,360],quietWidgets:["calendar","mail","todo"],
   });
@@ -960,7 +1071,7 @@ function App(){
     default:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
     mailFirst:{areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 340px 360px 48px"},
     compact:{areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"320px 340px 340px 48px"},
-    newsHeavy:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
+    newsHeavy:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news news news social social social calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 380px 340px 48px"},
   };
 
   const hidden=new Set(config.hiddenCards||[]);
@@ -1048,7 +1159,7 @@ function App(){
 .pfp-img{width:100%;height:100%;object-fit:cover;}.pfp-img.dith{image-rendering:pixelated;filter:contrast(1.3);}.pfp-empty{display:flex;flex-direction:column;align-items:center;gap:2px;}
 
 /* MUSIC WIDGET */
-.mw{border:1px solid rgba(255,255,255,.06);padding:10px 14px;display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.3);backdrop-filter:blur(16px);min-width:240px;border-radius:10px;}
+.mw{border:1px solid rgba(255,255,255,.06);padding:1px 15px;display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.3);backdrop-filter:blur(16px);flex:1 0 0;height:72px;border-radius:10px;}
 .mw-connect{flex-direction:row;}.mw-playing{flex-direction:row;align-items:stretch;}
 .mw-icon{font-size:18px;color:#aaa;width:28px;text-align:center;flex-shrink:0;}
 .mw-btns{display:flex;gap:4px;flex-shrink:0;}
@@ -1404,7 +1515,7 @@ function App(){
   .hero-c{padding:12px 16px 14px;}
   .hero-t{font-size:clamp(40px,8vw,72px);}
   .pfp{width:56px;height:56px;}
-  .mw{min-width:200px;padding:8px 10px;}
+  .mw{height:72px;padding:8px 12px;}
   .mw-song{font-size:10px;}
   .quiet-widgets{width:calc(100vw - 32px);right:16px;grid-template-columns:repeat(3,1fr);height:min(280px,calc(40vh));}
   .quiet-title{font-size:clamp(56px,10vw,100px);}
