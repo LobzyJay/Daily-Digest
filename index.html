@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Digest</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#080808">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Daily Digest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,6 +26,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
@@ -246,7 +253,7 @@ function relT(d){const s=(Date.now()-new Date(d))/1e3;if(s<3600)return`${Math.ma
 // ═══ LOCALSTORAGE HOOK ═══
 function useLS(key,def){
   const[v,sv]=useState(()=>{try{const s=localStorage.getItem(key);if(!s)return def;const p=JSON.parse(s);return(p&&typeof p==='object'&&!Array.isArray(p)&&def&&typeof def==='object'&&!Array.isArray(def))?{...def,...p}:p;}catch{return def;}});
-  useEffect(()=>{try{localStorage.setItem(key,JSON.stringify(v));}catch{};},[key,v]);
+  useEffect(()=>{try{localStorage.setItem(key,JSON.stringify(v));}catch(e){console.warn('[useLS] storage write failed:',key,e);};},[key,v]);
   return[v,sv];
 }
 
@@ -264,6 +271,7 @@ async function fetchRSS(cat){
   for(const url of urls){
     try{
       const r=await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=6`,{signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
+      if(r.status===429){console.warn('[fetchRSS] rate limited, using cached/static fallback');continue;}
       const d=await r.json();
       if(d.status!=='ok')continue;
       for(const i of(d.items||[])){
@@ -322,6 +330,88 @@ async function fetchATSJobs(keywords){
   return out;
 }
 
+// ═══ DOCUMENT PiP — float widget ═══
+function renderPiPContent(win){
+  const d=win.document;
+  d.documentElement.style.cssText="margin:0;padding:0;background:#080808;font-family:'IBM Plex Mono',monospace;";
+  d.body.style.cssText="margin:0;padding:0;width:100%;height:100%;display:flex;flex-direction:column;background:#080808;color:#e4e4ec;overflow:hidden;";
+  const S=d.createElement("style");
+  S.textContent=`*{box-sizing:border-box}body{width:100%;height:100%}.pip-wrap{width:100%;height:100%;display:grid;grid-template-rows:auto 1fr auto;background:#080808;border:1px solid #1e1e24}.pip-header{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid #1e1e24;background:#0f0f13}.pip-title{font-size:8px;font-weight:700;letter-spacing:0.12em;color:#888}.pip-dot{width:5px;height:5px;border-radius:50%;background:#f97316;display:inline-block;margin-right:5px}.pip-body{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1e1e24}.pip-cell{background:#080808;padding:8px 10px;display:flex;flex-direction:column;gap:3px}.pip-lbl{font-size:7px;letter-spacing:0.12em;color:#555;font-weight:700}.pip-val{font-size:18px;font-weight:800;color:#e4e4ec;line-height:1}.pip-val-sm{font-size:11px;font-weight:700;color:#e4e4ec;line-height:1.4}.pip-footer{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-top:1px solid #1e1e24}.pip-bar-wrap{flex:1;height:2px;background:#1e1e24;margin:0 8px;position:relative}.pip-bar-fill{height:100%;background:#e4e4ec;transition:width .5s}.pip-btn{font-size:7px;letter-spacing:0.1em;color:#888;background:none;border:1px solid #333;padding:3px 8px;cursor:pointer;font-family:inherit}.pip-btn:hover{color:#e4e4ec;border-color:#666}`;
+  d.head.appendChild(S);
+  const mf=s=>{const m=Math.floor(s/60);const ss=s%60;return`${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;};
+  const now=new Date();const hhmm=`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  // Static skeleton only — no user-derived data in innerHTML (XSS prevention)
+  d.body.innerHTML=`<div class="pip-wrap"><div class="pip-header"><span><span class="pip-dot"></span><span class="pip-title">DAILY DIGEST</span></span><span class="pip-title" id="pip-clock">${hhmm}</span></div><div class="pip-body"><div class="pip-cell"><span class="pip-lbl">TIMER</span><span class="pip-val" id="pip-time"></span><span class="pip-val-sm" id="pip-status"></span></div><div class="pip-cell"><span class="pip-lbl">TASKS LEFT</span><span class="pip-val" id="pip-tasks"></span><span class="pip-val-sm" style="color:#555">PENDING</span></div><div class="pip-cell"><span class="pip-lbl">UNREAD MAIL</span><span class="pip-val" id="pip-mail"></span><span class="pip-val-sm" style="color:#555">MESSAGES</span></div><div class="pip-cell"><span class="pip-lbl">FOCUS</span><span class="pip-val" id="pip-mode"></span><span class="pip-val-sm" id="pip-mode-lbl" style="color:#555"></span></div></div><div class="pip-footer"><button class="pip-btn" id="pip-toggle"></button><div class="pip-bar-wrap"><div class="pip-bar-fill" id="pip-fill"></div></div><span class="pip-title" id="pip-sess">3 SESSIONS</span></div></div>`;
+  // Populate all dynamic values via textContent — never innerHTML
+  const pipApply=(s)=>{
+    const safe=v=>String(v).replace(/[<>&"']/g,'');
+    const el=id=>d.getElementById(id);
+    if(el('pip-time'))el('pip-time').textContent=mf(s.tL);
+    if(el('pip-status')){el('pip-status').textContent=safe(s.tS);el('pip-status').style.color=s.tR?'#4ade80':'#555';}
+    if(el('pip-tasks'))el('pip-tasks').textContent=s.tK;
+    if(el('pip-mail'))el('pip-mail').textContent=s.un;
+    if(el('pip-mode'))el('pip-mode').textContent=s.tS==='BREAK'?'☕':'◈';
+    if(el('pip-mode-lbl'))el('pip-mode-lbl').textContent=s.tS==='BREAK'?'BREAK TIME':'ON TRACK';
+    if(el('pip-toggle'))el('pip-toggle').textContent=s.tR?'⏸ PAUSE':'▶ START';
+    if(el('pip-fill'))el('pip-fill').style.width=Math.round((1-s.tL/1500)*100)+'%';
+  };
+  pipApply(window._dd_state||{tL:1500,tR:false,tS:"READY",tK:0,un:0});
+  const toggleBtn=d.getElementById("pip-toggle");if(toggleBtn)toggleBtn.onclick=()=>{if(window._dd_toggleTimer)window._dd_toggleTimer();};
+  // Poll for state updates every second
+  const tick=()=>{pipApply(window._dd_state||{tL:1500,tR:false,tS:"READY",tK:0,un:0});};
+  win._pipTick=setInterval(tick,1000);
+  win.addEventListener("pagehide",()=>clearInterval(win._pipTick));
+}
+async function openPiP(){
+  if(!("documentPictureInPicture" in window)){
+    // Log to activity bar instead of blocking alert
+    window._dd_log?.("Float Widget requires Chrome 116+ desktop");
+    console.warn("Float Widget: documentPictureInPicture not supported in this browser.");
+    return;
+  }
+  try{
+    const win=await window.documentPictureInPicture.requestWindow({width:280,height:170,disallowReturnToOpener:false});
+    renderPiPContent(win);
+  }catch(e){
+    window._dd_log?.("Float Widget unavailable: "+e.message);
+    console.warn("PiP failed:",e);
+  }
+}
+
+// ═══ RESUME PARSER ═══
+async function extractResumeText(file){
+  if(file.size>10*1024*1024)throw new Error("Resume too large — max 10MB");
+  if(file.type==='application/pdf'||file.name.endsWith('.pdf')){
+    if(!window.pdfjsLib)throw new Error("PDF.js not loaded");
+    const ab=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    let text='';
+    for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const c=await page.getTextContent();text+=c.items.map(it=>it.str).join(' ')+'\n';}
+    return text;
+  }
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(file);});
+}
+function parseResumeKeywords(text){
+  const lo=text.toLowerCase();
+  const SKILLS=['figma','sketch','adobe xd','illustrator','photoshop','after effects','cinema 4d','blender','framer','webflow','react','vue','typescript','javascript','python','node','next.js','web3','solidity','ethereum','blockchain','nft','defi','crypto','ui design','ux design','product design','motion design','animation','branding','visual design','design systems','design tokens','html','css','tailwind','ai','llm','prompt engineering','api','leadership','strategy'];
+  const TITLES=[{p:/principal\s+designer/,t:'principal designer'},{p:/creative\s+director/,t:'creative director'},{p:/design\s+director/,t:'design director'},{p:/lead\s+designer/,t:'lead designer'},{p:/senior\s+designer/,t:'senior designer'},{p:/product\s+designer/,t:'product designer'},{p:/ui\s*[/\\]?\s*ux/,t:'ui/ux'},{p:/brand\s+designer/,t:'brand designer'},{p:/motion\s+designer/,t:'motion designer'},{p:/fullstack|full.stack/,t:'fullstack'},{p:/frontend|front.end/,t:'frontend engineer'},{p:/web\s+designer/,t:'web designer'}];
+  const skills=SKILLS.filter(s=>{const escaped=s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');return new RegExp('(?<![a-z])'+escaped+'(?![a-z])','i').test(lo);});
+  const titles=TITLES.filter(({p})=>p.test(lo)).map(({t})=>t).slice(0,3);
+  const yrsMatch=lo.match(/(\d+)\+?\s*years?\s+(?:of\s+)?experience/);
+  const yrs=yrsMatch?parseInt(yrsMatch[1]):null;
+  // Extract name from first line heuristic
+  const firstLine=text.split('\n').find(l=>l.trim().length>2&&l.trim().length<60)||'';
+  return{skills:skills.slice(0,12),titles,yrs,firstLine:firstLine.trim()};
+}
+function resumeMatchScore(job,resumeData){
+  if(!resumeData)return null;
+  const haystack=(job.title+' '+(job.tags||[]).join(' ')).toLowerCase();
+  const needles=[...resumeData.skills,...resumeData.titles];
+  if(!needles.length)return null;
+  const hits=needles.filter(n=>haystack.includes(n.split(' ')[0])).length;
+  return Math.min(100,Math.round((hits/Math.max(needles.length,6))*100));
+}
+
 const Mo=({children,s=10,c=P.dim,w=600,ls="0.08em",st={}})=>(<span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:s,color:c,fontWeight:w,letterSpacing:ls,lineHeight:1.3,...st}}>{children}</span>);
 const Tag=({children,inv,style={}})=>(<span className={`tag ${inv?"inv":""}`} style={style}>{children}</span>);
 const Dot=({color=P.white,size=6,pulse})=>(<span className={pulse?"dot pulse":"dot"} style={{width:size,height:size,background:color}}/>);
@@ -363,7 +453,9 @@ function HeroDither({light,fullscreen}){
       }}
       af.current=requestAnimationFrame(draw);};
     af.current=requestAnimationFrame(draw);
-    return()=>{window.removeEventListener("resize",rs);window.removeEventListener("mousemove",onM);cancelAnimationFrame(af.current);};
+    const onVis=()=>{if(document.hidden){cancelAnimationFrame(af.current);}else{af.current=requestAnimationFrame(draw);}};
+    document.addEventListener("visibilitychange",onVis);
+    return()=>{window.removeEventListener("resize",rs);window.removeEventListener("mousemove",onM);cancelAnimationFrame(af.current);document.removeEventListener("visibilitychange",onVis);};
   },[]);
   return <canvas ref={cv} className={fullscreen?"quiet-ascii":"hero-bg"}/>;
 }
@@ -456,7 +548,10 @@ function MusicWidget(){
 // ═══ HERO ═══
 function Hero({onSettings,light,setLight,config,quiet,setQuiet}){
   const ref=useRef(null);const [pulse,setPulse]=useState(true);
+  const [installPrompt,setInstallPrompt]=useState(null);
   useEffect(()=>{const i=setInterval(()=>setPulse(p=>!p),1400);return()=>clearInterval(i);},[]);
+  useEffect(()=>{const handler=e=>{e.preventDefault();setInstallPrompt(e);};window.addEventListener("beforeinstallprompt",handler);return()=>window.removeEventListener("beforeinstallprompt",handler);},[]);
+  const installPWA=()=>{if(!installPrompt)return;installPrompt.prompt();installPrompt.userChoice.then(()=>setInstallPrompt(null));};
   return(<section className="hero" ref={ref}><HeroDither light={light}/><div className="hero-dim"/><HeroTrail containerRef={ref}/>
     <div className="hero-c">
       <div className="hero-top">
@@ -464,6 +559,7 @@ function Hero({onSettings,light,setLight,config,quiet,setQuiet}){
         <div className="hero-top-r"><Mo s={9} c="var(--tx-md)">{new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:false})} {config?.tz||"WAT"}</Mo>
           <button className="daw-btn" onClick={()=>setLight(!light)}><span className="daw-led" style={{background:light?"#4ade80":"var(--tx-lo)"}}/>{light?"LIGHT":"DARK"}</button>
           <button className={`daw-btn ${quiet?"daw-on":""}`} onClick={()=>setQuiet(!quiet)}><span className="daw-led" style={{background:quiet?"#f97316":"var(--tx-lo)"}}/><Mo s={8} c="currentColor" w={700}>QUIET</Mo></button>
+          {installPrompt&&<button onClick={installPWA} className="daw-btn" title="Install as app"><span className="daw-led" style={{background:"#4ade80"}}/>INSTALL</button>}
           <button onClick={onSettings} className="daw-btn">{Ic.settings({s:10,c:"currentColor"})} HUB</button>
         </div>
       </div>
@@ -610,6 +706,26 @@ function JobsCard(){
   const [jobs,setJobs]=useState(JOBS);
   const [lastScan,setLastScan]=useState(new Date());
   const [source,setSource]=useState("local");
+  const [resumeData,setResumeData]=useLS('dd_resume',null);
+  const [resumeParsing,setResumeParsing]=useState(false);
+  const [resumeError,setResumeError]=useState(null);
+  const resumeRef=useRef(null);
+  const handleResumeUpload=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    setResumeParsing(true);setResumeError(null);
+    try{
+      const text=await extractResumeText(file);
+      const parsed=parseResumeKeywords(text);
+      const rd={name:file.name,uploadedAt:Date.now(),...parsed};
+      setResumeData(rd);
+      // Merge resume titles into search keywords (dedup)
+      const merged=[...new Set([...keywords,...parsed.titles,...parsed.skills.slice(0,3)])];
+      setKeywords(merged);
+      doScan(merged);
+    }catch(err){setResumeError("Could not read resume. Try a .txt or .pdf file.");}
+    setResumeParsing(false);
+    e.target.value='';
+  };
 
   const filters=["all","high chance","senior","lead","director+"];
   const scanRef=useRef(false);
@@ -659,13 +775,22 @@ function JobsCard(){
   </div>}/>
     {/* Keyword input bar */}
     <div style={{padding:"6px 12px",borderBottom:"1px solid var(--bd)",display:"flex",flexDirection:"column",gap:4}}>
+      {/* Resume banner */}
+      {resumeData?(<div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0",borderBottom:"1px solid var(--bd)",marginBottom:2}}>
+        <Mo s={7} c="#a78bfa" w={700} ls="0.1em">◈ RESUME</Mo>
+        <Mo s={8} c="var(--tx-md)" st={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{resumeData.name}</Mo>
+        {resumeData.yrs&&<Tag style={{borderColor:"#a78bfa",color:"#a78bfa",fontSize:7}}>{resumeData.yrs}YR EXP</Tag>}
+        <button onClick={()=>{setResumeData(null);setKeywords(DEFAULT_KEYWORDS);doScan(DEFAULT_KEYWORDS);}} className="kw-x" style={{fontSize:11,padding:"0 4px",color:"var(--tx-lo)"}}>×</button>
+      </div>):resumeError?(<div style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}}><Mo s={8} c="#f87171">{resumeError}</Mo><button onClick={()=>setResumeError(null)} className="kw-x">×</button></div>):null}
       <div style={{display:"flex",gap:3,flexWrap:"wrap",alignItems:"center"}}>
         <Mo s={7} c="var(--tx-lo)" w={700} ls="0.1em">KEYWORDS</Mo>
-        {keywords.map(k=>(<span key={k} className="kw-chip">{k}<button onClick={()=>removeKw(k)} className="kw-x">×</button></span>))}
+        {keywords.map(k=>{const fromResume=resumeData&&([...(resumeData.titles||[]),...(resumeData.skills||[])]).includes(k);return(<span key={k} className="kw-chip" style={fromResume?{borderColor:"#a78bfa",color:"#a78bfa"}:{}}>{k}<button onClick={()=>removeKw(k)} className="kw-x">×</button></span>);})}
         <div style={{display:"flex",gap:2,flex:1,minWidth:80}}>
           <input value={kwInput} onChange={e=>setKwInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addKw()} placeholder="+ add role..." className="inp" style={{padding:"3px 8px",fontSize:10,flex:1,minWidth:60}}/>
           {kwInput.trim()&&<button onClick={addKw} className="ab2" style={{padding:"3px 8px",fontSize:7}}>ADD</button>}
         </div>
+        <input ref={resumeRef} type="file" accept=".pdf,.txt,.doc" onChange={handleResumeUpload} style={{display:"none"}}/>
+        <button onClick={()=>resumeRef.current?.click()} className="ab2" style={{padding:"3px 8px",fontSize:7,display:"flex",alignItems:"center",gap:3,opacity:resumeParsing?.5:1,borderColor:resumeData?"#a78bfa":"",color:resumeData?"#a78bfa":""}} disabled={resumeParsing} title="Upload resume to auto-match jobs">{resumeParsing?"READING…":resumeData?"↑ RE-UPLOAD":"↑ RESUME"}</button>
       </div>
       {/* ATS Board filters */}
       <div style={{display:"flex",gap:2,flexWrap:"wrap",alignItems:"center"}}>
@@ -685,6 +810,7 @@ function JobsCard(){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
           <Tag inv={j.match>=90}>{j.match}%</Tag>
+          {(()=>{const rs=resumeMatchScore(j,resumeData);return rs!==null?<Tag style={{borderColor:rs>=70?"#a78bfa":"var(--bd)",color:rs>=70?"#a78bfa":"var(--tx-lo)",fontSize:6}}>CV {rs}%</Tag>:null;})()}
           <button onClick={e=>{e.stopPropagation();const btn=e.currentTarget;btn.classList.add("star-pop");setTimeout(()=>btn.classList.remove("star-pop"),350);setSv(p=>{const n=new Set(p);n.has(j.id)?n.delete(j.id):n.add(j.id);return n;});}} className="sb" style={{color:sv.has(j.id)?"var(--tx-hi)":"var(--tx-lo)"}}>{sv.has(j.id)?Ic.starFill({s:14,c:"var(--tx-hi)"}):Ic.star({s:14,c:"var(--tx-lo)"})}</button>
         </div>
       </div>
@@ -717,8 +843,32 @@ function TodoStatsCard(){
   const pc={urgent:"var(--tx-hi)",important:"var(--tx-md)",normal:"var(--tx-lo)"};
   const stats=[{l:"COLD EMAILS",v:"3"},{l:"APPS SENT",v:"14"},{l:"FOCUS",v:"4.5h"},{l:"STREAK",v:"7d"}];
   const [dur,setDur]=useState(1500);const [left,setLeft]=useState(1500);const [run,setRun]=useState(false);const [brk,setBrk]=useState(false);const [sess,setSess]=useState(3);const [flash,setFlash]=useState(false);const iv=useRef(null);
-  useEffect(()=>{if(run&&left>0)iv.current=setInterval(()=>setLeft(t=>t-1),1000);else if(left===0&&run){setRun(false);setFlash(true);setTimeout(()=>setFlash(false),1600);if(!brk){setSess(s=>s+1);setBrk(true);setLeft(300);}else{setBrk(false);setLeft(dur);}}return()=>clearInterval(iv.current);},[run,left,brk,dur]);
+  // Use refs to read latest values inside the interval without re-creating it
+  const runRef=useRef(run);const brkRef=useRef(brk);const durRef=useRef(dur);
+  runRef.current=run;brkRef.current=brk;durRef.current=dur;
+  useEffect(()=>{
+    clearInterval(iv.current);
+    if(!run){return;}
+    iv.current=setInterval(()=>{
+      setLeft(t=>{
+        if(t<=1){
+          // Timer hit zero — transition atomically inside the setter
+          clearInterval(iv.current);
+          setRun(false);
+          setFlash(true);setTimeout(()=>setFlash(false),1600);
+          if(!brkRef.current){setSess(s=>s+1);setBrk(true);return 300;}
+          else{setBrk(false);return durRef.current;}
+        }
+        return t-1;
+      });
+    },1000);
+    return()=>clearInterval(iv.current);
+  },[run]);
   const pct=brk?1-left/300:1-left/dur;const st=!run&&left===dur&&!brk?"READY":run?(brk?"BREAK":"FOCUS"):"PAUSED";
+  // Sync global state for PiP widget
+  const tasksLeft=todos.filter(t=>!t.done).length;
+  useEffect(()=>{window._dd_state={tL:left,tR:run,tS:st,tK:tasksLeft,un:ALL_MAIL.filter(m=>m.u).length};},[left,run,st,tasksLeft]);
+  useEffect(()=>{window._dd_toggleTimer=()=>setRun(r=>!r);return()=>{delete window._dd_toggleTimer;};},[]);
 
   return(<Card area="todo" cls="ni"><div className="todo-wrap">
     {/* POMODORO — top half */}
@@ -764,7 +914,7 @@ function CalendarCard(){
 
 function SocialCard(){return(<Card area="social"><Head left={<>{Ic.social({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">LEADS</Mo></>} right={<Tag inv>{SOCIAL.filter(s=>s.q==="high").length} HIGH</Tag>}/><div className="cs">{SOCIAL.map((s,i)=>(<div key={i} className="lr" style={{flexDirection:"column",gap:4,alignItems:"stretch"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:6}}><div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,overflow:"hidden"}}><Tag>{s.plat}</Tag><span style={{fontSize:11,fontWeight:600,color:"var(--tx-md)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.author}</span></div><div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Dot color={s.q==="high"?"var(--tx-hi)":"var(--tx-lo)"} size={5}/><Mo s={9} c="var(--tx-lo)">{s.t}</Mo></div></div><div className="stxt">{s.txt}</div></div>))}</div><div className="cf" style={{justifyContent:"flex-end"}}><Mo s={9} c="var(--tx-hi)" st={{cursor:"pointer"}}>ALL →</Mo></div></Card>);}
 
-function LogBar(){const [logs,setLogs]=useState(LOGS.slice(0,3));const idx=useRef(3);useEffect(()=>{const i=setInterval(()=>{setLogs(p=>{const n=[...p,LOGS[idx.current%LOGS.length]];idx.current++;return n.slice(-4);});},2800);return()=>clearInterval(i);},[]);return(<div className="card" style={{gridArea:"log"}}><div className="ci li"><div style={{display:"flex",alignItems:"center",gap:5}}>{Ic.log({s:11,c:"var(--tx-lo)"})}<Mo s={9} c="var(--tx-lo)" ls="0.1em" w={700}>LOG</Mo></div><div className="ll">{logs.map((l,i)=>(<div key={i+l} className="ln" style={{color:i===logs.length-1?"var(--tx-hi)":"var(--tx-lo)"}}><span style={{color:"var(--tx-lo)",marginRight:8}}>{(()=>{const t=new Date(Date.now()-(logs.length-1-i)*2800);return`${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;})()}</span>{l}</div>))}</div></div></div>);}
+function LogBar(){const [logs,setLogs]=useState(LOGS.slice(0,3));const idx=useRef(3);const addLog=useCallback(msg=>{setLogs(p=>[...p,msg].slice(-4));},[]);useEffect(()=>{window._dd_log=addLog;return()=>{delete window._dd_log;};},[addLog]);useEffect(()=>{const i=setInterval(()=>{setLogs(p=>{const n=[...p,LOGS[idx.current%LOGS.length]];idx.current++;return n.slice(-4);});},2800);return()=>clearInterval(i);},[]);return(<div className="card" style={{gridArea:"log"}}><div className="ci li"><div style={{display:"flex",alignItems:"center",gap:5}}>{Ic.log({s:11,c:"var(--tx-lo)"})}<Mo s={9} c="var(--tx-lo)" ls="0.1em" w={700}>LOG</Mo></div><div className="ll">{logs.map((l,i)=>(<div key={i+l} className="ln" style={{color:i===logs.length-1?"var(--tx-hi)":"var(--tx-lo)"}}><span style={{color:"var(--tx-lo)",marginRight:8}}>{(()=>{const t=new Date(Date.now()-(logs.length-1-i)*2800);return`${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;})()}</span>{l}</div>))}</div></div></div>);}
 
 function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
   const [tab,setTab]=useState("profile");const [adding,setAdding]=useState(null);const [addEmail,setAddEmail]=useState("");
@@ -1004,7 +1154,10 @@ function DigitalClock(){
 }
 function QuietLayout({light,config,setLight,quiet,setQuiet,onSettings,phase}){
   const ref=useRef(null);const [pulse,setPulse]=useState(true);
+  const [fs,setFs]=useState(false);
   useEffect(()=>{const i=setInterval(()=>setPulse(p=>!p),1400);return()=>clearInterval(i);},[]);
+  useEffect(()=>{const onFsChange=()=>setFs(!!document.fullscreenElement);document.addEventListener("fullscreenchange",onFsChange);return()=>document.removeEventListener("fullscreenchange",onFsChange);},[]);
+  const toggleFS=()=>{if(!document.fullscreenElement){ref.current?.requestFullscreen().catch(()=>{});}else{document.exitFullscreen().catch(()=>{});}};
   const QW_DEDICATED={calendar:QwCal,todo:QwPomo,jobs:QwJobs};
   const QW_WRAPPED={mail:MailCard,news:NewsCard,social:SocialCard};
   const widgets=config.quietWidgets||["calendar","mail","todo"];
@@ -1015,6 +1168,8 @@ function QuietLayout({light,config,setLight,quiet,setQuiet,onSettings,phase}){
       <div className="hero-top-l"><Dot color={P.white} size={7} pulse={pulse}/><Mo s={9} c="var(--tx-md)">64/73 SOURCES</Mo></div>
       <div className="hero-top-r"><Mo s={9} c="var(--tx-md)">{new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:false})} {config?.tz||"WAT"}</Mo>
         <button className="daw-btn" onClick={()=>setLight(!light)}><span className="daw-led" style={{background:light?"#4ade80":"var(--tx-lo)"}}/>{light?"LIGHT":"DARK"}</button>
+        <button className={`daw-btn ${fs?"daw-on":""}`} onClick={toggleFS}><span className="daw-led" style={{background:fs?"#60a5fa":"var(--tx-lo)"}}/>{fs?"EXIT FULL":"FULL"}</button>
+        <button className="daw-btn" onClick={openPiP}><span className="daw-led" style={{background:"#a78bfa"}}/>FLOAT</button>
         <button className="daw-btn daw-on" onClick={()=>setQuiet(false)}><span className="daw-led" style={{background:"#f97316"}}/>QUIET</button>
         <button onClick={onSettings} className="daw-btn">{Ic.settings({s:10,c:"currentColor"})} HUB</button>
       </div>
