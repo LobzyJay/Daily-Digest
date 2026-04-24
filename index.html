@@ -242,8 +242,6 @@ const NEWS={
 const SOCIAL=[{plat:"X",author:"@founderX",txt:"Looking for a brand designer who gets Web3. DM.",t:"1h",q:"high"},{plat:"LI",author:"Sarah Chen",txt:"Hiring Visual Designer at DeFi startup. Remote.",t:"3h",q:"high"},{plat:"CO",author:"New Brief",txt:"Brand Identity for NFT marketplace. $8K–12K.",t:"4h",q:"high"},{plat:"X",author:"@web3recruiter",txt:"Senior design roles at top L1s.",t:"6h",q:"partial"},{plat:"DC",author:"FoF #hiring",txt:"Freelance motion designers for crypto sprint.",t:"8h",q:"partial"}];
 const INIT_TODOS=[{id:1,text:"Update portfolio with Onchain campaign",done:false,pri:"urgent"},{id:2,text:"Reply to Monad recruiter",done:false,pri:"urgent"},{id:3,text:"Send Layout Studio invoice — 021 Labs",done:true,pri:"important"},{id:4,text:"Post Strandsby.oma case study",done:false,pri:"normal"},{id:5,text:"Prep Phantom interview materials",done:false,pri:"important"}];
 const LOGS=["SCAN Greenhouse → 3 new","SCAN Lever → 1 new","MAIL Gmail sync — 47","LEAD X → 2 matches","SCAN Wellfound → 2","LEAD Contra → 1 brief","SYS 64/73 healthy"];
-const EMAILS=["adewale@gmail.com","wale@layoutstudio.co","wale@021labs.com"];
-const TEMPLATES=[{name:"Job Application",body:"Hi [Name],\n\nI came across the [Role] position at [Company] and wanted to reach out. I'm a multidisciplinary designer with 6+ years across brand identity, UI/UX, and motion — currently Principal Designer at 021 Labs and Visual Designer at Onchain Foundation.\n\nI'd love to chat about how I can contribute.\n\nBest,\nAdewale"},{name:"Freelance Pitch",body:"Hi [Name],\n\nI run Layout Studio — a design agency specializing in brand identity, motion, and Web3. We've generated $150K+ revenue with 146M+ user reach.\n\nI'd love to explore working together on [Project].\n\nAdewale\nLayout Studio"},{name:"Networking",body:"Hi [Name],\n\nI've been following [Company]'s work — really admire what you're building. I'm a designer across Web3, brand, and motion. Would love to connect.\n\nBest,\nAdewale"},{name:"Custom",body:""}];
 
 const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 const dateLabel=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}).toUpperCase();
@@ -842,7 +840,7 @@ function TodoStatsCard(){
   const remove=id=>setTodos(t=>t.filter(x=>x.id!==id));
   const add=()=>{if(!inp.trim())return;setTodos(t=>[...t,{id:Date.now(),text:inp.trim(),done:false,pri:"normal"}]);setInp("");};
   const pc={urgent:"var(--tx-hi)",important:"var(--tx-md)",normal:"var(--tx-lo)"};
-  const stats=[{l:"COLD EMAILS",v:"3"},{l:"APPS SENT",v:"14"},{l:"FOCUS",v:"4.5h"},{l:"STREAK",v:"7d"}];
+  const stats=[{l:"APPS SENT",v:"14"},{l:"FOCUS",v:"4.5h"},{l:"STREAK",v:"7d"}];
   const [dur,setDur]=useState(1500);const [left,setLeft]=useState(1500);const [run,setRun]=useState(false);const [brk,setBrk]=useState(false);const [sess,setSess]=useState(3);const [flash,setFlash]=useState(false);const iv=useRef(null);
   // Use refs to read latest values inside the interval without re-creating it
   const runRef=useRef(run);const brkRef=useRef(brk);const durRef=useRef(dur);
@@ -928,12 +926,12 @@ function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
 
   // Grid presets
   const LAYOUTS={
-    default:{name:"Default",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
-    mailFirst:{name:"Mail Focus",areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 340px 360px 48px"},
-    compact:{name:"Compact",areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"320px 340px 340px 48px"},
-    newsHeavy:{name:"Intel Focus",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news news news social social social calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 380px 340px 48px"},
+    default:{name:"Default",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log"',rows:"380px 340px 48px"},
+    mailFirst:{name:"Mail Focus",areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log"',rows:"340px 340px 48px"},
+    compact:{name:"Compact",areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log"',rows:"320px 340px 48px"},
+    newsHeavy:{name:"Intel Focus",areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news news news social social social calendar calendar calendar""log log log log log log log log log log log log"',rows:"340px 380px 48px"},
   };
-  const cards=[{k:"mail",l:"Mail"},{k:"jobs",l:"Jobs"},{k:"todo",l:"Focus · Tasks · Stats"},{k:"news",l:"News Radar"},{k:"social",l:"Leads"},{k:"calendar",l:"Calendar"},{k:"email",l:"Cold Email"},{k:"log",l:"Activity Log"}];
+  const cards=[{k:"mail",l:"Mail"},{k:"jobs",l:"Jobs"},{k:"todo",l:"Focus · Tasks · Stats"},{k:"news",l:"News Radar"},{k:"social",l:"Leads"},{k:"calendar",l:"Calendar"},{k:"log",l:"Activity Log"}];
 
   return(<div className="mbg" onClick={onClose}><div className="mbox mbox-lg" onClick={e=>e.stopPropagation()}>
     <div className="mhd">
@@ -1000,9 +998,9 @@ function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
 
         <Mo s={9} c="var(--tx-lo)" ls="0.08em" w={700} st={{marginTop:16,marginBottom:8}}>ROW HEIGHTS</Mo>
         <div style={{display:"flex",gap:4}}>
-          {["Row 1","Row 2","Row 3"].map((r,i)=>(<div key={i} style={{flex:1}}>
+          {["Row 1","Row 2"].map((r,i)=>(<div key={i} style={{flex:1}}>
             <Mo s={8} c="var(--tx-lo)" st={{marginBottom:4}}>{r}</Mo>
-            <input value={(config.rowHeights||[380,340,360])[i]} onChange={e=>{const h=[...(config.rowHeights||[380,340,360])];h[i]=Number(e.target.value)||300;upd("rowHeights",h);}} className="inp set-inp" type="number" style={{width:"100%"}}/>
+            <input value={(config.rowHeights||[380,340])[i]} onChange={e=>{const h=[...(config.rowHeights||[380,340])];h[i]=Number(e.target.value)||300;upd("rowHeights",h);}} className="inp set-inp" type="number" style={{width:"100%"}}/>
           </div>))}
         </div>
 
@@ -1242,16 +1240,16 @@ function App(){
 
   // Grid presets (must match settings modal)
   const LAYOUTS={
-    default:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"380px 340px 360px 48px"},
-    mailFirst:{areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 340px 360px 48px"},
-    compact:{areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"320px 340px 340px 48px"},
-    newsHeavy:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news news news social social social calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log"',rows:"340px 380px 340px 48px"},
+    default:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log"',rows:"380px 340px 48px"},
+    mailFirst:{areas:'"mail mail mail mail mail mail jobs jobs jobs todo todo todo""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log"',rows:"340px 340px 48px"},
+    compact:{areas:'"todo todo todo todo mail mail mail mail jobs jobs jobs jobs""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log"',rows:"320px 340px 48px"},
+    newsHeavy:{areas:'"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news news news social social social calendar calendar calendar""log log log log log log log log log log log log"',rows:"340px 380px 48px"},
   };
 
   const hidden=new Set(config.hiddenCards||[]);
   const ly=LAYOUTS[config.layout]||LAYOUTS.default;
-  const rh=config.rowHeights||[380,340,360];
-  const gridStyle={gridTemplateAreas:ly.areas,gridTemplateRows:`${rh[0]}px ${rh[1]}px ${rh[2]}px 48px`};
+  const rh=config.rowHeights||[380,340];
+  const gridStyle={gridTemplateAreas:ly.areas,gridTemplateRows:`${rh[0]}px ${rh[1]}px 48px`};
 
   // Calculate hero height for mask initial clip
   const heroElRef=useRef(null);
@@ -1274,7 +1272,6 @@ function App(){
       {!hidden.has("news")&&<NewsCard/>}
       {!hidden.has("social")&&<SocialCard/>}
       {!hidden.has("calendar")&&<CalendarCard/>}
-      {!hidden.has("email")&&<ColdEmailCard/>}
       {!hidden.has("log")&&<LogBar/>}
     </main>
     </div>
@@ -1354,17 +1351,17 @@ function App(){
 /* 480px hero handled in comprehensive responsive below */
 
 /* ═══ BENTO ═══ */
-.bento{display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:380px 340px 360px 48px;grid-template-areas:"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log";gap:1px;padding:0;transition:filter .6s cubic-bezier(.4,0,.2,1);}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:380px 340px 48px;grid-template-areas:"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log";gap:1px;padding:0;transition:filter .6s cubic-bezier(.4,0,.2,1);}
 .bento.bh{filter:contrast(0.94) brightness(0.96);}.bento.bh .card:hover{filter:contrast(1.08) brightness(1.05);}
 .card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;}
 .card:hover{border-color:var(--bd-hi);}
 .card::before{content:'';position:absolute;inset:0;border-radius:8px;background:none;pointer-events:none;z-index:1;}
 .root.light .bento.bh{filter:contrast(0.96) brightness(1.01);}.root.light .bento.bh .card:hover{filter:contrast(1.05) brightness(0.98);}
-@media(max-width:1399px){.bento{grid-template-rows:360px 320px 340px 48px;}}
-@media(max-width:1199px){.bento{grid-template-columns:repeat(12,1fr);grid-template-rows:340px 320px 340px 48px;grid-template-areas:"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""email email email email email email email email email email email email""log log log log log log log log log log log log";}}
-@media(max-width:1023px){.bento{grid-template-columns:repeat(6,1fr);grid-template-rows:320px 300px 300px 340px 48px;grid-template-areas:"mail mail mail jobs jobs jobs""todo todo todo todo todo todo""news news news social social social""calendar calendar calendar email email email""log log log log log log";}}
-@media(max-width:767px){.bento{grid-template-columns:1fr 1fr;grid-template-rows:340px 360px 280px 280px 280px 340px 48px;grid-template-areas:"mail mail""jobs jobs""todo todo""news social""calendar calendar""email email""log log";padding:3px;gap:3px;}}
-@media(max-width:639px){.bento{grid-template-columns:1fr;grid-template-rows:repeat(7,auto) 48px;grid-template-areas:"todo""mail""jobs""news""social""calendar""email""log";}.ci{min-height:280px;}.li{min-height:auto!important;}}
+@media(max-width:1399px){.bento{grid-template-rows:360px 320px 48px;}}
+@media(max-width:1199px){.bento{grid-template-columns:repeat(12,1fr);grid-template-rows:340px 320px 48px;grid-template-areas:"mail mail mail mail jobs jobs jobs jobs todo todo todo todo""news news news news social social social social calendar calendar calendar calendar""log log log log log log log log log log log log";}}
+@media(max-width:1023px){.bento{grid-template-columns:repeat(6,1fr);grid-template-rows:320px 300px 300px 340px 48px;grid-template-areas:"mail mail mail jobs jobs jobs""todo todo todo todo todo todo""news news news social social social""calendar calendar calendar calendar calendar calendar""log log log log log log";}}
+@media(max-width:767px){.bento{grid-template-columns:1fr 1fr;grid-template-rows:340px 360px 280px 280px 280px 48px;grid-template-areas:"mail mail""jobs jobs""todo todo""news social""calendar calendar""log log";padding:3px;gap:3px;}}
+@media(max-width:639px){.bento{grid-template-columns:1fr;grid-template-rows:repeat(6,auto) 48px;grid-template-areas:"todo""mail""jobs""news""social""calendar""log";}.ci{min-height:280px;}.li{min-height:auto!important;}}
 
 /* CARD */
 .card{position:relative;overflow:visible;animation:cI .4s ease both;}
@@ -1449,12 +1446,8 @@ function App(){
 .li{padding:10px 16px;display:flex;flex-direction:column;gap:6px;background:var(--sf);border:1px solid var(--bd);height:100%;}
 .log-card{position:sticky;bottom:0;z-index:50;}
 .ll{display:flex;flex-direction:column;}.ln{font-family:'Space Mono',monospace;font-size:10px;line-height:1.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s;}
-.ef{display:flex;gap:8px;align-items:center;}
 .sel{flex:1;background:var(--rs);border:1px solid var(--bd);padding:7px 12px;color:var(--tx-hi);font-size:11px;font-family:'Space Mono',monospace;outline:none;min-width:0;cursor:pointer;border-radius:6px;transition:all .2s cubic-bezier(.4,0,.2,1);}.sel:focus{border-color:var(--bd-hi);}
-.eta{background:var(--rs);border:1px solid var(--bd);padding:10px 12px;color:var(--tx-hi);font-size:11px;font-family:'Space Mono',monospace;outline:none;resize:vertical;line-height:1.5;min-height:80px;border-radius:6px;transition:all .2s cubic-bezier(.4,0,.2,1);}.eta:focus{border-color:var(--bd-hi);}
 .send-btn{background:var(--inv-bg);border:1px solid transparent;color:var(--inv-tx);padding:8px 20px;cursor:pointer;font-size:10px;font-weight:600;font-family:'Space Mono',monospace;letter-spacing:.06em;transition:all .2s cubic-bezier(.4,0,.2,1);border-radius:6px;}.send-btn:hover{opacity:.85;}.send-btn:disabled{opacity:.4;cursor:default;}
-.save-tpl-btn{background:none;border:none;cursor:pointer;padding:2px 0;opacity:.6;transition:opacity .2s;}.save-tpl-btn:hover{opacity:1;}
-.save-tpl-row{display:flex;gap:4px;margin-top:4px;align-items:center;}
 .tpl-del{background:none;border:none;cursor:pointer;color:var(--tx-lo);font-size:9px;padding:2px 4px;line-height:1;transition:all .2s;border-radius:3px;}.tpl-del:hover{color:var(--tx-hi);background:var(--glow);}
 .mbg{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;animation:mdIn .2s ease;}
 @keyframes mdIn{from{opacity:0;}to{opacity:1;}}
@@ -1746,9 +1739,6 @@ function App(){
   .qw>.card .cf{padding:4px 8px;}
   .qw>.card.ni .tmr-hero{padding:4px 8px;}
   .qw>.card.ni .tmr-hero svg{width:56px;height:56px;}
-  /* Cold email — stack */
-  .email-wrap{flex-direction:column !important;}
-  .email-left,.email-right{width:100% !important;max-width:100% !important;}
 }
 
 /* MOBILE PORTRAIT < 480 */
