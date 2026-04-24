@@ -106,12 +106,13 @@ function parseTitle(title,link){
 }
 
 // Fetch real jobs via Anthropic API web_search tool
-async function fetchRealJobs(keywords){
+async function fetchRealJobs(keywords,apiKey){
+  if(!apiKey)return null;
   const q=buildXrayQuery(keywords);
   try{
     const response=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
       body:JSON.stringify({
         model:"claude-sonnet-4-5-20250929",
         max_tokens:2000,
@@ -666,7 +667,32 @@ function NewsCard(){
   </Card>);
 }
 
-function JobsCard(){
+// ═══ COLD EMAIL ═══
+function ColdEmailCard(){
+  const [ti,setTi]=useState(0);const [body,setBody]=useState(TEMPLATES[0].body);const [to,setTo]=useState("");const [from,setFrom]=useState(EMAILS[0]);const [subj,setSubj]=useState("");const [sent,setSent]=useState([]);const [sending,setSending]=useState(false);
+  const [custom,setCustom]=useLS('dd_templates',[]);const [saving,setSaving]=useState(false);const [saveName,setSaveName]=useState("");
+  const allTpls=[...TEMPLATES,...custom];
+  const pick=i=>{setTi(i);setBody(allTpls[i].body);setSubj(allTpls[i].subj||"");};
+  const saveCustom=()=>{if(!saveName.trim()||!body.trim())return;setCustom(p=>[...p,{name:saveName.trim(),body,subj}]);setSaving(false);setSaveName("");setTi(allTpls.length);};
+  const delCustom=i=>{const ci=i-TEMPLATES.length;setCustom(p=>p.filter((_,j)=>j!==ci));if(ti===i)pick(0);else if(ti>i)setTi(ti-1);};
+  const send=()=>{if(!to.trim()||!body.trim())return;setSending(true);setTimeout(()=>{setSent(p=>{const n=[...p,{to:to.trim(),subj:subj||"(No subject)",t:new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}];return n;});setTo("");setSubj("");setSending(false);},600);};
+  return(<Card area="email"><Head left={<>{Ic.send({s:13,c:"var(--tx-hi)"})}<Mo s={11} c="var(--tx-hi)" w={700} ls="0.12em">COLD EMAIL</Mo></>} right={<Tag inv={sent.length>0}>{sent.length} SENT</Tag>}/>
+    <div className="cs" style={{padding:12,display:"flex",flexDirection:"column",gap:8}}>
+      <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Mo s={9} c="var(--tx-lo)" ls="0.1em">TEMPLATE</Mo>{!saving&&<button onClick={()=>setSaving(true)} className="save-tpl-btn"><Mo s={8} c="var(--tx-hi)" w={700}>+ SAVE AS TEMPLATE</Mo></button>}</div>
+        {saving&&<div className="save-tpl-row"><input value={saveName} onChange={e=>setSaveName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveCustom()} placeholder="Template name..." className="inp" style={{flex:1,padding:"5px 10px",fontSize:10}}/><button onClick={saveCustom} className="ab2" style={{padding:"5px 10px",fontSize:8}}>SAVE</button><button onClick={()=>{setSaving(false);setSaveName("");}} className="ab2" style={{padding:"5px 10px",fontSize:8}}>{Ic.x({s:8,c:"currentColor"})}</button></div>}
+        <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap"}}>{allTpls.map((t,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:0}}><button onClick={()=>pick(i)} className={`chip ${ti===i?"on":""}`}>{t.name}</button>{i>=TEMPLATES.length&&<button onClick={()=>delCustom(i)} className="tpl-del">{Ic.x({s:9,c:"currentColor"})}</button>}</div>))}</div>
+      </div>
+      <div className="ef"><Mo s={9} c="var(--tx-lo)" w={700} st={{width:36,flexShrink:0}}>FROM</Mo><select value={from} onChange={e=>setFrom(e.target.value)} className="sel">{EMAILS.map(e=>(<option key={e} value={e}>{e}</option>))}</select></div>
+      <div className="ef"><Mo s={9} c="var(--tx-lo)" w={700} st={{width:36,flexShrink:0}}>TO</Mo><input value={to} onChange={e=>setTo(e.target.value)} placeholder="recipient@company.com" className="inp"/></div>
+      <div className="ef"><Mo s={9} c="var(--tx-lo)" w={700} st={{width:36,flexShrink:0}}>SUBJ</Mo><input value={subj} onChange={e=>setSubj(e.target.value)} placeholder="Subject line..." className="inp"/></div>
+      <textarea value={body} onChange={e=>setBody(e.target.value)} className="eta" rows={5}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Mo s={9} c="var(--tx-lo)">{sent.length>0?`Last → ${sent[sent.length-1].to}`:""}</Mo><button onClick={send} disabled={sending} className={`send-btn ${sending?"sending":""}`}>{sending?"SENDING...":"SEND ↗"}</button></div>
+    </div>
+  </Card>);
+}
+
+function JobsCard({apiKey}){
   const [fl,setFl]=useState("all");
   const [svArr,setSvArr]=useLS('dd_saved_jobs',[]);
   const sv=new Set(svArr);
@@ -709,7 +735,7 @@ function JobsCard(){
     const ats=await fetchATSJobs(kw);
     if(ats.length>=3){setJobs(ats);setSource("live");setLastScan(new Date());setScanning(false);return;}
     // Tier 2: Anthropic web_search
-    const real=await fetchRealJobs(kw);
+    const real=apiKey?await fetchRealJobs(kw,apiKey):null;
     if(real&&real.length>0){setJobs([...ats,...real].slice(0,20));setSource("live");}
     else if(ats.length>0){setJobs(ats);setSource("live");}
     else{setJobs(generateFallbackJobs(kw));setSource("local");}
@@ -1067,6 +1093,24 @@ function SettingsModal({onClose,accounts,setAccounts,config,setConfig}){
             <div key={it.l} className="sr"><div className="sr-l"><Dot color={it.s==="ok"?"var(--tx-hi)":it.s==="warn"?"var(--tx-md)":"var(--tx-lo)"} size={6}/><span style={{fontSize:12,color:"var(--tx-md)"}}>{it.l}</span></div><Tag inv={it.s==="warn"} style={{cursor:"pointer"}}>{it.s==="ok"?"SYNCED":it.s==="warn"?"RECONNECT":"CONNECT"}</Tag></div>
           ))}
         </div>
+        <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--bd)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <Mo s={10} c="var(--tx-hi)" w={700} ls="0.12em">AI JOB SEARCH</Mo>
+            {config.anthropicKey?<Tag inv style={{fontSize:7}}>● ACTIVE</Tag>:<Tag style={{fontSize:7}}>○ NOT SET</Tag>}
+          </div>
+          <Mo s={8} c="var(--tx-lo)" st={{display:"block",marginBottom:8}}>Anthropic API key — enables AI-powered X-ray job search. Stored locally only.</Mo>
+          <div style={{display:"flex",gap:4}}>
+            <input
+              type="password"
+              value={config.anthropicKey||""}
+              onChange={e=>upd("anthropicKey",e.target.value)}
+              placeholder="sk-ant-..."
+              className="inp set-inp"
+              style={{flex:1,fontFamily:"'Space Mono',monospace",letterSpacing:"0.05em"}}
+            />
+            {config.anthropicKey&&<button onClick={()=>upd("anthropicKey","")} className="ab2" style={{padding:"6px 10px",fontSize:8}}>CLEAR</button>}
+          </div>
+        </div>
       </div>}
 
     </div>
@@ -1184,14 +1228,14 @@ function App(){
       setTimeout(()=>{setPhase("normal");setQuiet(false);},900);
     }
   };
-  const [accounts,setAccounts]=useState([
+  const [accounts,setAccounts]=useLS('dd_accounts',[
     {id:1,email:"adewale@gmail.com",prov:"google",status:"ok"},
     {id:2,email:"wale@layoutstudio.co",prov:"google",status:"ok"},
     {id:3,email:"wale@021labs.com",prov:"outlook",status:"ok"},
   ]);
   const [config,setConfig]=useLS('dd_config',{
     name:"ADEWALE ALOBA",title:"Principal Designer",tz:"WAT",heroLine1:"DAILY",heroLine2:"DIGEST",
-    primaryEmail:"adewale@gmail.com",syncInterval:60,layout:"default",hiddenCards:[],rowHeights:[380,340],quietWidgets:["calendar","mail","todo"],
+    primaryEmail:"adewale@gmail.com",syncInterval:60,layout:"default",hiddenCards:[],rowHeights:[380,340,360],quietWidgets:["calendar","mail","todo"],anthropicKey:"",
   });
 
   // Grid presets (must match settings modal)
@@ -1223,7 +1267,7 @@ function App(){
     <Hero onSettings={()=>setSettings(true)} light={light} setLight={setLight} config={config} quiet={quiet} setQuiet={toggleQuiet}/>
     <main className={`bento ${bh?"bh":""}`} onMouseEnter={()=>setBh(true)} onMouseLeave={()=>setBh(false)} style={gridStyle}>
       {!hidden.has("mail")&&<MailCard/>}
-      {!hidden.has("jobs")&&<JobsCard/>}
+      {!hidden.has("jobs")&&<JobsCard apiKey={config.anthropicKey}/>}
       {!hidden.has("todo")&&<TodoStatsCard/>}
       {!hidden.has("news")&&<NewsCard/>}
       {!hidden.has("social")&&<SocialCard/>}
