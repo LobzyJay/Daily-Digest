@@ -1249,14 +1249,13 @@ function App(){
   const hidden=new Set(config.hiddenCards||[]);
   const ly=LAYOUTS[config.layout]||LAYOUTS.default;
   const rh=config.rowHeights||[380,340];
+  const gridStyle={gridTemplateAreas:ly.areas,gridTemplateRows:`${rh[0]}px ${rh[1]}px 48px`};
 
   // Calculate hero height for mask initial clip
   const heroElRef=useRef(null);
   const [heroH,setHeroH]=useState(320);
   useEffect(()=>{const el=document.querySelector(".hero");if(el){setHeroH(el.offsetHeight);const ro=new ResizeObserver(()=>setHeroH(el.offsetHeight));ro.observe(el);return()=>ro.disconnect();}},[]);
   const maskClip=phase==="normal"||phase==="hiding"?`inset(0 0 calc(100% - ${heroH}px) 0)`:"inset(0 0 0 0)";
-
-  const gridStyle={gridTemplateAreas:ly.areas,gridTemplateRows:`minmax(${rh[0]}px, 1fr) minmax(${rh[1]}px, 1fr) 48px`,minHeight:`calc(100vh - ${heroH}px)`};
 
   return(<div className={`root ${light?"light":""}`}>
     {/* Quiet mode — masked reveal layer */}
